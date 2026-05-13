@@ -1,0 +1,53 @@
+# Dependencies
+/node_modules/
+.pnp
+.pnp.js
+
+# Next.js
+/.next/
+/out/
+.vercel
+
+# Production / bundler output
+/build/
+/dist/
+
+# Environment (commit templates only)
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Logs & debug
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE / editors
+.idea/
+
+# TypeScript
+*.tsbuildinfo
+
+# ESLint
+.eslintcache
+
+# Tests
+coverage/
+
+# Storybook
+storybook-static/
+*storybook.log
+
+# Turborepo / monorepo caches (harmless if unused)
+.turbo
+
+# Certificates / keys (local only)
+*.pem
