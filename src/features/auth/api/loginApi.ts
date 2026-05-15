@@ -1,12 +1,14 @@
 import apiClient from "@/lib/api/apiClient";
+import type { LoginRequest } from "@/features/auth/api/authTypes";
 
-export type LoginResponse = {
-  accessToken?: string;
-  tokenType?: string;
-  expiresInSeconds?: number;
-};
-
-/** `POST /auth/login` — 본문 `email`(로그인 ID), `password` */
+/**
+ * `POST /auth/login` — 본문 `email`, `password`.
+ * 토큰은 JSON 이 아니라 `Set-Cookie`(httpOnly) 로 내려온다.
+ */
 export async function loginApi(email: string, password: string) {
-  return apiClient.post<LoginResponse>("/auth/login", { email, password });
+  const body: LoginRequest = {
+    email: email.trim(),
+    password,
+  };
+  return apiClient.post<void>("/auth/login", body);
 }

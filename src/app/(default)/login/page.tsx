@@ -15,7 +15,8 @@ export default function LoginPage() {
 
     return (
         <div className="max-w-md mx-auto mt-20 p-6 border rounded shadow bg-white">
-            <h2 className="text-2xl font-bold mb-6 text-center">로그인</h2>
+            <h2 className="text-2xl font-bold mb-2 text-center">로그인</h2>
+            <p className="mb-6 text-center text-sm text-gray-600">가입할 때 등록한 이메일로 로그인합니다.</p>
 
             <form onSubmit={onSubmit} className="space-y-4">
                 <div>
@@ -28,7 +29,6 @@ export default function LoginPage() {
                         required
                         className="w-full px-3 py-2 border rounded"
                     />
-                    <p className="mt-1 text-xs text-gray-500">가입 시 사용한 이메일 주소</p>
                 </div>
 
                 <div>

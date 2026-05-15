@@ -36,7 +36,9 @@ export default function SignUpForm() {
 
             if (axios.isAxiosError(err)) {
                 const status = err.response?.status
-                if (status === 409) {
+                if (status === 400) {
+                    setError('이메일 형식, 비밀번호(8자 이상), 닉네임을 확인해 주세요.')
+                } else if (status === 409) {
                     setError('이미 사용 중인 닉네임 또는 이메일입니다.')
                 } else {
                     const data = err.response?.data as { message?: string; error?: string } | undefined
@@ -51,11 +53,11 @@ export default function SignUpForm() {
 
     return (
         <div className="max-w-md mx-auto mt-20 p-6 border rounded shadow bg-white">
-            <h2 className="text-2xl font-bold mb-6 text-center">회원가입</h2>
+            <h2 className="text-2xl font-bold mb-2 text-center">회원가입</h2>
 
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                    <label className="block text-sm font-medium">이메일 (로그인 ID)</label>
+                    <label className="block text-sm font-medium">이메일</label>
                     <input
                         type="email"
                         autoComplete="email"
@@ -64,7 +66,6 @@ export default function SignUpForm() {
                         required
                         className="w-full px-3 py-2 border rounded"
                     />
-                    <p className="mt-1 text-xs text-gray-500">로그인할 때 사용하는 이메일 주소입니다.</p>
                 </div>
 
                 <div>
@@ -75,6 +76,7 @@ export default function SignUpForm() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
+                        minLength={8}
                         className="w-full px-3 py-2 border rounded"
                     />
                 </div>
@@ -89,7 +91,6 @@ export default function SignUpForm() {
                         required
                         className="w-full px-3 py-2 border rounded"
                     />
-                    <p className="mt-1 text-xs text-gray-500">게시판·댓글에 표시되는 이름입니다. 로그인 ID가 아닙니다.</p>
                 </div>
 
                 {error && <p className="text-red-500 text-sm">{error}</p>}

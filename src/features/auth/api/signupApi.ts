@@ -1,14 +1,17 @@
 import apiClient from "@/lib/api/apiClient";
+import type { SignupRequest } from "@/features/auth/api/authTypes";
 
-export type SignupInput = {
-  /** 로그인 ID — 이후 `POST /auth/login` 본문 `email`과 동일 */
-  email: string;
-  password: string;
-  /** 게시판·댓글 등에 표시되는 닉네임 (로그인 ID 아님) */
-  nickname: string;
-};
+export type SignupInput = SignupRequest;
 
-/** `POST /auth/signup` — 본문 `email`, `password`, `nickname` */
+/**
+ * `POST /auth/signup` — 요청 `email`, `password`, `nickname`.
+ * 성공 시 201, 응답 본문 없음(로그인과 동일).
+ */
 export async function signupApi(input: SignupInput) {
-  return apiClient.post("/auth/signup", input);
+  const body: SignupRequest = {
+    email: input.email.trim(),
+    password: input.password,
+    nickname: input.nickname.trim(),
+  };
+  return apiClient.post<void>("/auth/signup", body);
 }
