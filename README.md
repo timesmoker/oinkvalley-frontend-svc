@@ -43,7 +43,7 @@ docker run --rm -p 3000:3000 \
   frontend-svc:local
 ```
 
-멀티 아키 빌드는 레포의 `./docker-build-dev.sh`, `./docker-build-product.sh` 를 본다.
+k3s 로컬(`infra/k3s/local/up.sh`)은 `frontend-svc:latest` 태그를 기대한다. `docker build -t frontend-svc:latest .`
 
 ---
 

@@ -22,7 +22,6 @@ yarn-error.log*
 # Docker 관련 파일 (이미지 안에 들어갈 필요 없음)
 Dockerfile
 docker-compose*.yml
-docker-build-*.sh
 
 # 기타
 .storybook/
