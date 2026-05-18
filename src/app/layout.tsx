@@ -22,10 +22,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
         <html lang="ko">
-        <AuthInitializer />
         <body className={`flex flex-col min-h-screen ${inter.variable} ${fira.variable} antialiasing`}>
-
-        {children}
+            <AuthInitializer />
+            {children}
         </body>
         </html>
     )
