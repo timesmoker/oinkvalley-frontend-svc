@@ -46,11 +46,35 @@ export type BoardPostsBundleResponse = {
   posts: PageResponse<PostSummaryResponse>;
 };
 
+export type ApiErrorResponse = {
+  message: string;
+  errors?: { field: string; message: string }[];
+};
+
 export class AuthRequiredError extends Error {
-  constructor(message = "Authentication required") {
+  constructor(message = "로그인이 필요합니다.") {
     super(message);
     this.name = "AuthRequiredError";
   }
+}
+
+export class MemberRequiredError extends Error {
+  constructor(message = "정식 회원만 열람할 수 있습니다.") {
+    super(message);
+    this.name = "MemberRequiredError";
+  }
+}
+
+async function readApiErrorMessage(res: Response, fallback: string): Promise<string> {
+  try {
+    const data = (await res.json()) as ApiErrorResponse;
+    if (data?.message?.trim()) {
+      return data.message.trim();
+    }
+  } catch {
+    /* 본문 없음 */
+  }
+  return fallback;
 }
 
 function parseBoardList(data: unknown): BoardResponse[] {
@@ -72,7 +96,10 @@ export async function fetchBoards(
 ): Promise<BoardResponse[]> {
   const res = await fetch(`${baseUrl}/boards`, buildSsrUpstreamFetchInit(auth));
   if (res.status === 401) {
-    throw new AuthRequiredError("GET /boards requires authentication");
+    throw new AuthRequiredError(await readApiErrorMessage(res, "로그인이 필요합니다."));
+  }
+  if (res.status === 403) {
+    throw new MemberRequiredError(await readApiErrorMessage(res, "정식 회원만 열람할 수 있습니다."));
   }
   if (!res.ok) {
     throw new Error(`GET /boards failed: ${res.status}`);
@@ -103,9 +130,12 @@ export async function fetchBoardPostsBundle(
   const res = await fetch(url.toString(), buildSsrUpstreamFetchInit(auth));
 
   if (res.status === 401) {
-    throw new AuthRequiredError(`GET /boards/${pathSegment} requires authentication`);
+    throw new AuthRequiredError(await readApiErrorMessage(res, "로그인이 필요합니다."));
   }
-  if (res.status === 404 || res.status === 403) {
+  if (res.status === 403) {
+    throw new MemberRequiredError(await readApiErrorMessage(res, "정식 회원만 열람할 수 있습니다."));
+  }
+  if (res.status === 404) {
     return null;
   }
   if (!res.ok) {
@@ -132,9 +162,12 @@ export async function fetchBoardMetaBySegment(
   url.searchParams.set("size", "1");
   const res = await fetch(url.toString(), buildSsrUpstreamFetchInit(auth));
   if (res.status === 401) {
-    throw new AuthRequiredError(`GET /boards/${pathSegment} requires authentication`);
+    throw new AuthRequiredError(await readApiErrorMessage(res, "로그인이 필요합니다."));
   }
-  if (res.status === 404 || res.status === 403) {
+  if (res.status === 403) {
+    throw new MemberRequiredError(await readApiErrorMessage(res, "정식 회원만 열람할 수 있습니다."));
+  }
+  if (res.status === 404) {
     return null;
   }
   if (!res.ok) {
@@ -160,9 +193,12 @@ export async function fetchBoardWriteMetaBySegment(
     buildSsrUpstreamFetchInit(auth),
   );
   if (res.status === 401) {
-    throw new AuthRequiredError(`GET /boards/${pathSegment}/write requires authentication`);
+    throw new AuthRequiredError(await readApiErrorMessage(res, "로그인이 필요합니다."));
   }
-  if (res.status === 404 || res.status === 403) {
+  if (res.status === 403) {
+    throw new MemberRequiredError(await readApiErrorMessage(res, "정식 회원만 열람할 수 있습니다."));
+  }
+  if (res.status === 404) {
     return null;
   }
   if (!res.ok) {
@@ -185,9 +221,12 @@ export async function fetchPostBySegment(
     buildSsrUpstreamFetchInit(auth),
   );
   if (res.status === 401) {
-    throw new AuthRequiredError(`GET /boards/${pathSegment}/${postId} requires authentication`);
+    throw new AuthRequiredError(await readApiErrorMessage(res, "로그인이 필요합니다."));
   }
-  if (res.status === 404 || res.status === 403) return null;
+  if (res.status === 403) {
+    throw new MemberRequiredError(await readApiErrorMessage(res, "정식 회원만 열람할 수 있습니다."));
+  }
+  if (res.status === 404) return null;
   if (!res.ok) return null;
   return res.json() as Promise<PostResponse>;
 }
