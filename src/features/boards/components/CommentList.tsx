@@ -21,7 +21,8 @@ export default function CommentList({
 
     const userId = useAuthStore((s) => s.userId)
     const hasHydrated = useAuthStore((s) => s.hasHydrated)
-    const { comments, nicknameByUserId, totalPages, authRequired } = useComments(postId, page, refreshKey)
+    const { comments, nicknameByUserId, totalPages, authRequired, memberRequired, accessMessage } =
+        useComments(postId, page, refreshKey)
 
     return (
         <div className="mt-6 w-full mx-auto">
@@ -29,14 +30,20 @@ export default function CommentList({
 
             {authRequired && (
                 <p className="text-sm text-muted-foreground mb-4 rounded-md border border-dashed px-3 py-2">
-                    댓글을 보려면 로그인이 필요합니다.{' '}
+                    {accessMessage ?? "로그인이 필요합니다."}{" "}
                     <Link href="/login" className="text-blue-600 underline hover:text-blue-500">
                         로그인
                     </Link>
                 </p>
             )}
 
-            {!authRequired && (
+            {memberRequired && (
+                <p className="text-sm text-muted-foreground mb-4 rounded-md border border-dashed px-3 py-2">
+                    {accessMessage ?? "정식 회원만 열람할 수 있습니다."}
+                </p>
+            )}
+
+            {!authRequired && !memberRequired && (
                 <>
                     <ul className="space-y-4">
                         {comments.map((comment) => (

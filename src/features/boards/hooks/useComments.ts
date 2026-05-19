@@ -13,6 +13,8 @@ export function useComments(postId: string, page: number, refreshKey?: number) {
   const [nicknameByUserId, setNicknameByUserId] = useState<Record<string, string>>({});
   const [totalPages, setTotalPages] = useState(1);
   const [authRequired, setAuthRequired] = useState(false);
+  const [memberRequired, setMemberRequired] = useState(false);
+  const [accessMessage, setAccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -22,6 +24,8 @@ export function useComments(postId: string, page: number, refreshKey?: number) {
         });
 
         setAuthRequired(false);
+        setMemberRequired(false);
+        setAccessMessage(null);
         setComments(res.data.content);
         setTotalPages(res.data.totalPages);
 
@@ -46,6 +50,31 @@ export function useComments(postId: string, page: number, refreshKey?: number) {
       } catch (err) {
         if (axios.isAxiosError(err) && err.response?.status === 401) {
           setAuthRequired(true);
+          setMemberRequired(false);
+          setAccessMessage(
+            typeof err.response.data === "object" &&
+              err.response.data !== null &&
+              "message" in err.response.data &&
+              typeof (err.response.data as { message: unknown }).message === "string"
+              ? (err.response.data as { message: string }).message
+              : "로그인이 필요합니다.",
+          );
+          setComments([]);
+          setNicknameByUserId({});
+          setTotalPages(1);
+          return;
+        }
+        if (axios.isAxiosError(err) && err.response?.status === 403) {
+          setAuthRequired(false);
+          setMemberRequired(true);
+          setAccessMessage(
+            typeof err.response.data === "object" &&
+              err.response.data !== null &&
+              "message" in err.response.data &&
+              typeof (err.response.data as { message: unknown }).message === "string"
+              ? (err.response.data as { message: string }).message
+              : "정식 회원만 열람할 수 있습니다.",
+          );
           setComments([]);
           setNicknameByUserId({});
           setTotalPages(1);
@@ -61,5 +90,7 @@ export function useComments(postId: string, page: number, refreshKey?: number) {
     nicknameByUserId,
     totalPages,
     authRequired,
+    memberRequired,
+    accessMessage,
   };
 }
