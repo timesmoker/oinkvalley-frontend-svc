@@ -1,6 +1,5 @@
 // src/app/(default)/boards/[slug]/[postId]/page.tsx
 
-import { notFound } from "next/navigation";
 import {PostDetail} from "@/features/boards/types/posts";
 import dynamic from "next/dynamic";
 import { getServerApiBaseUrl, getSsrUpstreamAuthFromRequest } from "@/lib/api/serverBaseUrl";
@@ -8,7 +7,10 @@ import {
     fetchBoardMetaBySegment,
     fetchPostBySegment,
 } from "@/features/boards/api/boardSvc";
-import { handleBoardPageError } from "@/features/boards/api/handleBoardPageError";
+import {
+    handleProtectedPageError,
+    redirectForbidden,
+} from "@/lib/auth/handleProtectedPageError";
 import {
     authorLabel,
     profilesToNicknameRecord,
@@ -28,12 +30,12 @@ export default async function PostPage({ params }: { params: { slug: string; pos
     let loaded;
     try {
         board = await fetchBoardMetaBySegment(baseUrl, params.slug, ssrAuth);
-        if (!board) return notFound();
+        if (!board) redirectForbidden();
         loaded = await fetchPostBySegment(baseUrl, params.slug, params.postId, ssrAuth);
     } catch (err) {
-        handleBoardPageError(err, `/boards/${params.slug}/${params.postId}`);
+        handleProtectedPageError(err, `/boards/${params.slug}/${params.postId}`);
     }
-    if (!loaded || loaded.boardId !== board.id) return notFound();
+    if (!loaded || loaded.boardId !== board.id) redirectForbidden();
 
     const post: PostDetail = loaded;
 
