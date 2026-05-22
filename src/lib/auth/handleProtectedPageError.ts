@@ -1,8 +1,6 @@
 import { redirect } from "next/navigation";
-import {
-  AuthRequiredError,
-  MemberRequiredError,
-} from "@/features/boards/api/boardQueries";
+import { AuthRequiredError } from "@/lib/api/authRequiredError";
+import { MemberRequiredError } from "@/features/boards/api/boardQueries";
 
 /** 권한 없음 전용 페이지로 보냄 (존재·접근 여부를 숨길 때 사용) */
 export function redirectForbidden(): never {
