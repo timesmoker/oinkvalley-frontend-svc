@@ -1,7 +1,10 @@
 import type { JSONContent } from "@tiptap/core";
 import type { PageResponse } from "@/types/pagination";
+import { AuthRequiredError } from "@/lib/api/authRequiredError";
 import type { SsrUpstreamAuth } from "@/lib/api/serverBaseUrl";
 import { buildSsrUpstreamFetchInit } from "@/lib/api/serverBaseUrl";
+
+export { AuthRequiredError };
 
 export type BoardResponse = {
   id: number;
@@ -50,13 +53,6 @@ export type ApiErrorResponse = {
   message: string;
   errors?: { field: string; message: string }[];
 };
-
-export class AuthRequiredError extends Error {
-  constructor(message = "로그인이 필요합니다.") {
-    super(message);
-    this.name = "AuthRequiredError";
-  }
-}
 
 export class MemberRequiredError extends Error {
   constructor(message = "정식 회원만 열람할 수 있습니다.") {
