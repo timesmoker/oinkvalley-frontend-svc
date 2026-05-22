@@ -1,14 +1,15 @@
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/features/auth/store/useAuthStore";
 import { loginApi } from "@/features/auth/api/loginApi";
 import type { MeResponse } from "@/features/auth/api/authTypes";
 import apiClient from "@/lib/api/apiClient";
 import axios from "axios";
 
+/** 세션 변경 후 Router Cache/RSC 꼬임 방지 — 전체 새로고침 */
+function hardNavigateAfterAuthChange(path = "/") {
+  window.location.assign(path);
+}
+
 export function useLogin() {
-  const { login } = useAuthStore();
-  const router = useRouter();
   const [error, setError] = useState("");
 
   const handleLogin = async (email: string, password: string) => {
@@ -17,14 +18,13 @@ export function useLogin() {
       await loginApi(email, password);
 
       try {
-        const me = await apiClient.get<MeResponse>("/auth/me");
-        login(me.data.userId);
+        await apiClient.get<MeResponse>("/auth/me");
       } catch {
         setError("로그인은 되었지만 세션을 확인하지 못했습니다.");
         return;
       }
 
-      router.push("/");
+      hardNavigateAfterAuthChange("/");
     } catch (err) {
       if (axios.isAxiosError(err)) {
         const status = err.response?.status;
