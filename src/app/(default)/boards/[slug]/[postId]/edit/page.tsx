@@ -1,11 +1,13 @@
 import dynamic from "next/dynamic"
-import { notFound } from "next/navigation"
 import { getServerApiBaseUrl, getSsrUpstreamAuthFromRequest } from "@/lib/api/serverBaseUrl"
 import {
   fetchBoardMetaBySegment,
   fetchPostBySegment,
 } from "@/features/boards/api/boardSvc"
-import { handleBoardPageError } from "@/features/boards/api/handleBoardPageError"
+import {
+  handleProtectedPageError,
+  redirectForbidden,
+} from "@/lib/auth/handleProtectedPageError"
 
 const EditPostEditor = dynamic(() => import("@/features/boards/components/EditPostEditor"), {
   ssr: false,
@@ -23,12 +25,12 @@ export default async function PostEditPage({
   let post
   try {
     board = await fetchBoardMetaBySegment(baseUrl, params.slug, ssrAuth)
-    if (!board) return notFound()
+    if (!board) redirectForbidden()
     post = await fetchPostBySegment(baseUrl, params.slug, params.postId, ssrAuth)
   } catch (err) {
-    handleBoardPageError(err, `/boards/${params.slug}/${params.postId}/edit`)
+    handleProtectedPageError(err, `/boards/${params.slug}/${params.postId}/edit`)
   }
-  if (!post || post.boardId !== board.id) return notFound()
+  if (!post || post.boardId !== board.id) redirectForbidden()
 
   return (
     <div className="w-full px-0 py-6 sm:px-6 sm:max-w-[950px] sm:mx-auto">
