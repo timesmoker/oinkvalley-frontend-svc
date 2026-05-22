@@ -1,6 +1,5 @@
 // src/app/(default)/boards/[slug]/page.tsx
 
-import { notFound } from "next/navigation";
 import EntryList from "@/features/boards/components/EntryList";
 import Link from "next/link";
 import { PostEntries } from "@/features/boards/types/postEntries";
@@ -8,7 +7,10 @@ import { getServerApiBaseUrl, getSsrUpstreamAuthFromRequest } from "@/lib/api/se
 import {
     fetchBoardPostsBundle,
 } from "@/features/boards/api/boardSvc";
-import { handleBoardPageError } from "@/features/boards/api/handleBoardPageError";
+import {
+    handleProtectedPageError,
+    redirectForbidden,
+} from "@/lib/auth/handleProtectedPageError";
 import { profilesToNicknameRecord } from "@/features/profile/api/profileSvc";
 import { fetchProfilesByIds } from "@/features/profile/api/profileQueries";
 
@@ -29,9 +31,9 @@ export default async function BoardPage({
         bundle = await fetchBoardPostsBundle(baseUrl, params.slug, page, 20, ssrAuth);
     } catch (err) {
         const next = page > 0 ? `/boards/${params.slug}?page=${page}` : `/boards/${params.slug}`;
-        handleBoardPageError(err, next);
+        handleProtectedPageError(err, next);
     }
-    if (!bundle) return notFound();
+    if (!bundle) redirectForbidden();
 
     const board = bundle.board;
     const data = bundle.posts;

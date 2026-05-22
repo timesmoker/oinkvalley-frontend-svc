@@ -1,7 +1,10 @@
 import type { JSONContent } from "@tiptap/core";
 import type { PageResponse } from "@/types/pagination";
+import { AuthRequiredError } from "@/lib/api/authRequiredError";
 import type { SsrUpstreamAuth } from "@/lib/api/serverBaseUrl";
 import { buildSsrUpstreamFetchInit } from "@/lib/api/serverBaseUrl";
+
+export { AuthRequiredError };
 
 export type BoardResponse = {
   id: number;
@@ -45,13 +48,6 @@ export type BoardPostsBundleResponse = {
   board: BoardResponse;
   posts: PageResponse<PostSummaryResponse>;
 };
-
-export class AuthRequiredError extends Error {
-  constructor(message = "Authentication required") {
-    super(message);
-    this.name = "AuthRequiredError";
-  }
-}
 
 function parseBoardList(data: unknown): BoardResponse[] {
   if (Array.isArray(data)) return data as BoardResponse[];
