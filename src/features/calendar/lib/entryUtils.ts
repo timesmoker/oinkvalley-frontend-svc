@@ -98,7 +98,7 @@ export function filterEntriesByTags(
     entries: CalendarEntry[],
     active: ReadonlySet<CalendarEntryType>,
 ) {
-    if (active.size === 0) return [];
+    if (active.size === 0) return entries;
     return entries.filter((e) => entryMatchesTagFilter(e, active));
 }
 
