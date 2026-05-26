@@ -99,7 +99,7 @@ export function useCalendarEntries({
             return rangeEntries;
         }
         if (typeFilter.size === 0) {
-            return [];
+            return rangeEntries;
         }
         return rangeEntries.filter((e) => entryMatchesTagFilter(e, typeFilter));
     }, [rangeEntries, typeFilter, isLoggedIn]);

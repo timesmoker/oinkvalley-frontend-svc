@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Settings } from "lucide-react";
 import type {
     CalendarEntry,
@@ -20,6 +20,10 @@ import {
     sortEntriesForDay,
     startOfRollingWeek,
 } from "@/features/calendar/lib/entryUtils";
+import {
+    loadTagFilterSelection,
+    saveTagFilterSelection,
+} from "@/features/calendar/lib/calendarTagFilterStorage";
 import DaySummaryPanel from "@/features/calendar/components/panel/DaySummaryPanel";
 import { useCalendarEntries } from "@/features/calendar/hooks/useCalendarEntries";
 import { useCalendarTags } from "@/features/calendar/hooks/useCalendarTags";
@@ -73,9 +77,8 @@ export default function CalendarApp() {
     const [eventScope, setEventScope] = useState<CalendarEventScope>("visible");
     const [viewMode, setViewMode] = useState<CalendarViewMode>("month");
     const [viewDate, setViewDate] = useState(() => new Date(today));
-    const [typeFilter, setTypeFilter] = useState<Set<CalendarEntryType>>(
-        () => new Set(tagIds),
-    );
+    const [typeFilter, setTypeFilter] = useState<Set<CalendarEntryType>>(() => new Set());
+    const tagFilterInitRef = useRef(false);
     const [selectedDay, setSelectedDay] = useState(() => daySelectionFromDate(new Date()));
     const [panelEntryId, setPanelEntryId] = useState<string | null>(null);
     const [panelAdding, setPanelAdding] = useState(false);
@@ -132,27 +135,39 @@ export default function CalendarApp() {
     );
 
     useEffect(() => {
-        const visible = new Set(tagIds);
+        if (!calendarEnabled) {
+            tagFilterInitRef.current = false;
+        }
+    }, [calendarEnabled]);
+
+    /** 태그 목록 로드 후: 저장된 체크 상태 복원 또는 전체 선택 */
+    useEffect(() => {
+        if (!calendarEnabled || tagIds.length === 0) return;
+
+        if (!tagFilterInitRef.current) {
+            tagFilterInitRef.current = true;
+            let initial: Set<CalendarEntryType>;
+            if (userId != null) {
+                const stored = loadTagFilterSelection(userId);
+                const valid = stored?.filter((id) => tagIds.includes(id)) ?? [];
+                initial = valid.length > 0 ? new Set(valid) : new Set(tagIds);
+            } else {
+                initial = new Set(tagIds);
+            }
+            setTypeFilter(initial);
+            return;
+        }
+
         setTypeFilter((prev) => {
-            const next = new Set([...prev].filter((id) => visible.has(id)));
+            const next = new Set([...prev].filter((id) => tagIds.includes(id)));
             return next.size === prev.size ? prev : next;
         });
-    }, [tagIds]);
+    }, [calendarEnabled, tagIds, userId]);
 
     useEffect(() => {
-        if (defaultVisibleTagIdStrings.length === 0) return;
-        setTypeFilter((prev) => {
-            const next = new Set(prev);
-            let changed = false;
-            for (const id of defaultVisibleTagIdStrings) {
-                if (tagIds.includes(id) && !next.has(id)) {
-                    next.add(id);
-                    changed = true;
-                }
-            }
-            return changed ? next : prev;
-        });
-    }, [defaultVisibleTagIdStrings, tagIds]);
+        if (!calendarEnabled || userId == null || !tagFilterInitRef.current) return;
+        saveTagFilterSelection(userId, [...typeFilter]);
+    }, [typeFilter, userId, calendarEnabled]);
 
     const { entries, loading, error, authRequired, addEntry, updateEntry, deleteEntry } =
         useCalendarEntries({
@@ -366,8 +381,9 @@ export default function CalendarApp() {
             )}
             {error && <p className="px-2 text-sm text-destructive">{error}</p>}
             {isLoggedIn && typeFilter.size === 0 && (
-                <p className="px-2 text-sm text-muted-foreground">
-                    표시할 태그를 하나 이상 선택하세요.
+                <p className="px-2 text-xs text-muted-foreground">
+                    태그를 모두 끄면 볼 수 있는 일정 전체가 표시됩니다. 태그를
+                    켜면 해당 태그가 붙은 일정만 필터됩니다.
                 </p>
             )}
             {!isLoggedIn && hasHydrated && (
