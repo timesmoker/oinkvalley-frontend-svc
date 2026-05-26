@@ -25,7 +25,9 @@ export default function Header() {
             </Link>
 
             <nav className="hidden md:flex justify-end gap-6 text-sm text-gray-600">
-                <Link href="#" className="hover:scale-125 hover:text-black transition">달력</Link>
+                <Link href="/calendar" className="hover:scale-125 hover:text-black transition">
+                    달력
+                </Link>
                 <Link href="/boards/office-of-architect" className="hover:scale-125 hover:text-black transition">건축 사무소</Link>
                 <Link href="/boards" className="hover:scale-125 hover:text-black transition">게시판</Link>
                 <Link href="/exercise" className="hover:scale-125 hover:text-black transition">칭찬 스티커</Link>
@@ -79,7 +81,9 @@ export default function Header() {
             {/* 모바일 메뉴 */}
             {mobileMenuOpen && (
                 <div className="absolute top-16 left-0 w-full bg-white border-t flex flex-col gap-4 px-6 py-4 z-40 text-gray-800 text-sm">
-                    <Link href="#" onClick={toggleMobileMenu}>달력</Link>
+                    <Link href="/calendar" onClick={toggleMobileMenu}>
+                        달력
+                    </Link>
                     <Link href="/boards/office-of-architect" onClick={toggleMobileMenu}>건축 사무소</Link>
                     <Link href="/boards" onClick={toggleMobileMenu}>게시판</Link>
                     <Link href="/exercise" onClick={toggleMobileMenu}>칭찬 스티커</Link>
