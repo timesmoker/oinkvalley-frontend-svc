@@ -17,6 +17,7 @@ import {
 } from "@/features/profile/api/profileSvc";
 import { fetchProfilesByIds } from "@/features/profile/api/profileQueries";
 import PostOwnerActions from "@/features/boards/components/PostOwnerActions";
+import { formatPostDateTime } from "@/features/boards/lib/formatPostDate";
 
 const Viewer = dynamic(() => import('@/features/boards/components/Viewer'), { ssr: false });
 const Comments = dynamic(() => import('@/features/boards/components/Comments'), { ssr: false })
@@ -69,15 +70,7 @@ export default async function PostPage({ params }: { params: { slug: string; pos
                 <div className="border-b px-4 py-2 flex justify-between text-sm text-gray-700">
                     <span>작성자 : {authorDisplay}</span>
 
-                    <span>작성시각 :{' '}
-                        {new Date(post.createdAt).toLocaleString('ko-KR', {
-                            year: 'numeric',
-                            month: '2-digit',
-                            day: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                        })}
-                    </span>
+                    <span>작성시각 : {formatPostDateTime(post.createdAt)}</span>
                 </div>
 
 
