@@ -3,20 +3,8 @@
 import Link from "next/link";
 import { FileText } from "lucide-react";
 import { PostEntries } from "@/features/boards/types/postEntries";
+import { formatPostListDate } from "@/features/boards/lib/formatPostDate";
 import { authorLabel } from "@/features/profile/api/profileSvc";
-
-function formatDate(dateStr: string) {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-
-    const within24Hours = diff < 24 * 60 * 60 * 1000;
-    if (within24Hours) {
-        return date.toTimeString().slice(0, 5); // "hh:mm"
-    } else {
-        return date.toISOString().slice(2, 10).replace(/-/g, "."); // "yy.mm.dd"
-    }
-}
 
 export default function EntryList({
     posts,
@@ -69,14 +57,14 @@ export default function EntryList({
                                     {authorLabel(nicknameByUserId, entry.userId)}
                                 </div>
                                 <div className="w-20 text-center text-muted-foreground">
-                                    {formatDate(entry.createdAt)}
+                                    {formatPostListDate(entry.createdAt)}
                                 </div>
                             </div>
 
                             {/* 모바일용 */}
                             <div className="sm:hidden text-xs text-muted-foreground pl-6">
                                 {authorLabel(nicknameByUserId, entry.userId)} ·{" "}
-                                {formatDate(entry.createdAt)}
+                                {formatPostListDate(entry.createdAt)}
                             </div>
                         </div>
                     </li>

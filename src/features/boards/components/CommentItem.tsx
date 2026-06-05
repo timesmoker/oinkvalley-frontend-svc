@@ -6,6 +6,7 @@ import { authorLabel } from "@/features/profile/api/profileSvc";
 import Viewer from "@/features/boards/components/Viewer";
 import CommentEditor from "@/features/boards/components/CommentEditor";
 import { deleteComment } from "@/features/boards/api/boardMutations";
+import { formatPostDateTime } from "@/features/boards/lib/formatPostDate";
 
 export default function CommentItem({
   comment,
@@ -46,7 +47,7 @@ export default function CommentItem({
       <div className="flex justify-between gap-2 text-sm text-gray-500 mb-2">
         <span>{authorLabel(nicknameByUserId, comment.userId)}</span>
         <span className="flex shrink-0 items-center gap-2">
-          <span>{new Date(comment.createdAt).toLocaleString()}</span>
+          <span>{formatPostDateTime(comment.createdAt)}</span>
           {isMine && (
             <>
               <button
