@@ -45,7 +45,7 @@ export default function PostOwnerActions({
   }
 
   return (
-    <div className="mt-4 flex flex-wrap gap-2">
+    <div className="mt-4 flex flex-wrap justify-end gap-2">
       <Link
         href={`/boards/${boardSlug}/${postId}/edit`}
         className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm hover:bg-gray-50"
