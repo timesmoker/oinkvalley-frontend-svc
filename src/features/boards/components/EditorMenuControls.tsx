@@ -1,4 +1,6 @@
+import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import { useTheme } from "@mui/material";
+import MenuButtonDetails from "@/features/boards/components/MenuButtonDetails";
 import {
     MenuButtonAddTable,
     MenuButtonBlockquote,
@@ -31,8 +33,9 @@ import {
     isTouchDevice,
 } from "mui-tiptap";
 
-export default function EditorMenuControls() {
+export default function EditorMenuControls({ scope = "post" }: { scope?: "post" | "comment" }) {
     const theme = useTheme();
+    const isComment = scope === "comment";
     return (
         <MenuControlsContainer>
             <MenuSelectFontFamily
@@ -98,11 +101,17 @@ export default function EditorMenuControls() {
 
             <MenuDivider />
 
-            <MenuButtonEditLink />
+            {!isComment && <MenuButtonEditLink />}
 
-            <MenuDivider />
+            {!isComment && <MenuDivider />}
 
-            <MenuSelectTextAlign />
+            <MenuSelectTextAlign
+                emptyLabel={
+                    <FormatAlignLeftIcon
+                        sx={{ fontSize: "1.25rem", color: theme.palette.action.active }}
+                    />
+                }
+            />
 
             <MenuDivider />
 
@@ -128,26 +137,31 @@ export default function EditorMenuControls() {
 
             <MenuButtonBlockquote />
 
-            <MenuDivider />
+            {!isComment && <MenuButtonDetails />}
+
+            {!isComment && <MenuDivider />}
 
             <MenuButtonCode />
 
             <MenuButtonCodeBlock />
 
-            <MenuDivider />
+            {!isComment && <MenuDivider />}
 
-            <MenuButtonHorizontalRule />
+            {!isComment && <MenuButtonHorizontalRule />}
 
-            <MenuButtonAddTable />
+            {!isComment && <MenuButtonAddTable />}
 
-            <MenuDivider />
+            {!isComment && <MenuDivider />}
 
             <MenuButtonRemoveFormatting />
 
-            <MenuDivider />
-
-            <MenuButtonUndo />
-            <MenuButtonRedo />
+            {!isComment && (
+                <>
+                    <MenuDivider />
+                    <MenuButtonUndo />
+                    <MenuButtonRedo />
+                </>
+            )}
         </MenuControlsContainer>
     );
 }

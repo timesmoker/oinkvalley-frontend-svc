@@ -10,6 +10,7 @@ import {
 import axios from 'axios'
 import EditorMenuControls from "./EditorMenuControls";
 import useExtensions from "./useExtensions";
+import { proseMirrorBlockSpacingStyles } from "@/features/boards/lib/boardPostContentLayout";
 import { createComment, updateComment } from "@/features/boards/api/boardMutations";
 
 export default function CommentEditor({
@@ -31,6 +32,7 @@ export default function CommentEditor({
     const [submitting, setSubmitting] = useState(false)
     const extensions = useExtensions({
         placeholder: isEdit ? "댓글을 수정하세요..." : "댓글을 입력하세요...",
+        scope: "comment",
     });
 
     useEffect(() => {
@@ -90,7 +92,7 @@ export default function CommentEditor({
                     borderRadius: '6px',
                     overflowWrap: 'break-word',
                     wordBreak: 'break-word',
-
+                    ...proseMirrorBlockSpacingStyles,
                     "& ol, & ul": {
                         paddingLeft: '1.5rem',
                         marginLeft: 0,
@@ -102,7 +104,7 @@ export default function CommentEditor({
                 key={isEdit ? `edit-comment-${commentId}` : 'new-comment'}
                 ref={editorRef}
                 extensions={extensions}
-                renderControls={() => <EditorMenuControls />}
+                renderControls={() => <EditorMenuControls scope="comment" />}
             />
 
             <div className="flex justify-end gap-2">
