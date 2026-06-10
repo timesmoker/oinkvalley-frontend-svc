@@ -1,4 +1,4 @@
-import type { EditorOptions } from "@tiptap/core";
+import { Extension, type EditorOptions } from "@tiptap/core";
 import { Blockquote } from "@tiptap/extension-blockquote";
 import { Bold } from "@tiptap/extension-bold";
 import { BulletList } from "@tiptap/extension-bullet-list";
@@ -16,7 +16,6 @@ import { HorizontalRule } from "@tiptap/extension-horizontal-rule";
 import { Italic } from "@tiptap/extension-italic";
 import { Link } from "@tiptap/extension-link";
 import { ListItem } from "@tiptap/extension-list-item";
-import { OrderedList } from "@tiptap/extension-ordered-list";
 import { Paragraph } from "@tiptap/extension-paragraph";
 import { Placeholder } from "@tiptap/extension-placeholder";
 import { Strike } from "@tiptap/extension-strike";
@@ -31,6 +30,14 @@ import { Text } from "@tiptap/extension-text";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { TextStyle } from "@tiptap/extension-text-style";
 import { Underline } from "@tiptap/extension-underline";
+import Details from "@tiptap/extension-details";
+import DetailsContent from "@tiptap/extension-details-content";
+import DetailsSummary from "@tiptap/extension-details-summary";
+import NodeRange from "@tiptap/extension-node-range";
+import TableOfContents, {
+  getHierarchicalIndexes,
+  type TableOfContentData,
+} from "@tiptap/extension-table-of-contents";
 import { useMemo } from "react";
 import {
   FontSize,
@@ -39,10 +46,23 @@ import {
   ResizableImage,
   TableImproved,
 } from "mui-tiptap";
+import HeadingWithAnchorToc from "@/features/boards/components/headingWithAnchorToc";
+import BlockIndent from "@/features/boards/extensions/blockIndent";
+import BoardOrderedList from "@/features/boards/extensions/boardOrderedList";
+import BoardTabKeyboard from "@/features/boards/extensions/boardTabKeyboard";
+import {
+    BOARD_POST_HR_CLASS,
+    boardHorizontalRuleInlineStyle,
+} from "@/features/boards/lib/boardPostContentLayout";
+import { createTocHeadingIdAllocator } from "@/features/boards/lib/headingId";
 
 export type UseExtensionsOptions = {
   /** Placeholder hint to show in the text input area before a user types a message. */
   placeholder?: string;
+  /** post: 드래그 핸들·목차·heading anchor id. comment: 본문 편집만 */
+  scope?: "post" | "comment";
+  /** TableOfContents extension — heading 목록 갱신 시 호출 (post 전용) */
+  onTableOfContentsUpdate?: (data: TableOfContentData) => void;
 };
 
 // Don't treat the end cursor as "inclusive" of the Link mark, so that users can
@@ -79,14 +99,71 @@ const CustomSuperscript = Superscript.extend({
   excludes: "subscript",
 });
 
+/** 빈 에디터 진입 시 paragraph에 textAlign=left 명시 (툴바 선택 상태) */
+const DefaultTextAlignLeft = Extension.create({
+  name: "defaultTextAlignLeft",
+  onCreate() {
+    const hasAlign = ["left", "center", "right", "justify"].some((alignment) =>
+      this.editor.isActive({ textAlign: alignment }),
+    );
+    if (!hasAlign) {
+      this.editor.commands.setTextAlign("left");
+    }
+  },
+});
+
 /**
- * A hook for providing a default set of useful extensions for the MUI-Tiptap
- * editor.
+ * Board ProseMirror extensions — node/mark contract SOT: {@code board/content-schema.json}.
  */
 export default function useExtensions({
   placeholder,
+  scope = "post",
+  onTableOfContentsUpdate,
 }: UseExtensionsOptions = {}): EditorOptions["extensions"] {
   return useMemo(() => {
+    const tocHeadingIds = new Set<string>();
+    const isPost = scope === "post";
+
+    const postOnlyExtensions = isPost
+      ? [
+          TableOfContents.configure({
+            getIndex: getHierarchicalIndexes,
+            getId: createTocHeadingIdAllocator(tocHeadingIds),
+            onUpdate: (data) => {
+              tocHeadingIds.clear();
+              for (const item of data) {
+                tocHeadingIds.add(item.id);
+              }
+              onTableOfContentsUpdate?.(data);
+            },
+          }),
+          NodeRange,
+          HeadingWithAnchorToc,
+        ]
+      : [HeadingWithAnchor];
+
+    const tableExtensions = isPost
+      ? [
+          TableImproved.configure({
+            resizable: true,
+          }),
+          TableRow,
+          TableHeader,
+          TableCell,
+        ]
+      : [];
+
+    const detailsExtensions = isPost
+      ? [
+          Details.configure({
+            // open 상태는 저장하지 않음 — 편집 시 펼침, 뷰어 시 접힘
+            persist: false,
+          }),
+          DetailsSummary,
+          DetailsContent,
+        ]
+      : [];
+
     return [
       // We incorporate all of the functionality that's part of
       // https://tiptap.dev/api/extensions/starter-kit, plus a few additional
@@ -103,19 +180,14 @@ export default function useExtensions({
       // note in prosemirror-tables on the need to have these plugins be lower
       // precedence
       // https://github.com/ueberdosis/prosemirror-tables/blob/1a0428af3ca891d7db648ce3f08a2c74d47dced7/src/index.js#L26-L30
-      TableImproved.configure({
-        resizable: true,
-      }),
-      TableRow,
-      TableHeader,
-      TableCell,
+      ...tableExtensions,
 
       BulletList,
       CodeBlock,
       Document,
       HardBreak,
       ListItem,
-      OrderedList,
+      BoardOrderedList,
       Paragraph,
       CustomSubscript,
       CustomSuperscript,
@@ -147,18 +219,32 @@ export default function useExtensions({
       }),
       LinkBubbleMenuHandler,
 
+      ...detailsExtensions,
+      ...postOnlyExtensions,
+
       // Extensions
       Gapcursor,
-      HeadingWithAnchor,
       TextAlign.configure({
         types: ["heading", "paragraph", "image"],
+        defaultAlignment: "left",
       }),
+      BlockIndent,
+      DefaultTextAlignLeft,
       TextStyle,
       Color,
       FontFamily,
       FontSize,
       Highlight.configure({ multicolor: true }),
-      HorizontalRule,
+      ...(isPost
+        ? [
+            HorizontalRule.configure({
+              HTMLAttributes: {
+                class: BOARD_POST_HR_CLASS,
+                style: boardHorizontalRuleInlineStyle,
+              },
+            }),
+          ]
+        : []),
 
       ResizableImage,
       // When images are dragged, we want to show the "drop cursor" for where they'll
@@ -177,6 +263,9 @@ export default function useExtensions({
       // We use the regular `History` (undo/redo) extension when not using
       // collaborative editing
       History,
+
+      // Tab — 목록 sink / 첫 항목 중첩 / 블록 들여쓰기 (표·코드·details Tab은 위임)
+      BoardTabKeyboard,
     ];
-  }, [placeholder]);
+  }, [placeholder, scope, onTableOfContentsUpdate]);
 }

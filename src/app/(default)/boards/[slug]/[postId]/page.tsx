@@ -57,7 +57,7 @@ export default async function PostPage({ params }: { params: { slug: string; pos
     return (
         <div className="w-full px-0 py-6 sm:px-6 sm:max-w-[950px] sm:mx-auto">
             {/* 게시판 이름 */}
-            <h1 className="text-2xl font-bold mb-4">{board.name}</h1>
+            <h1 id="board-post-scroll-anchor" className="text-2xl font-bold mb-4">{board.name}</h1>
 
             {/* 전체 박스 */}
             <div className="border border-gray-300 rounded-md overflow-hidden text-sm">
@@ -74,14 +74,14 @@ export default async function PostPage({ params }: { params: { slug: string; pos
                 </div>
 
 
-                {/* 본문 내용 줄 */}
-                <div className="px-4 py-6 bg-white">
-                    <div className="prose min-h-[200px]">
-                        <Viewer
-                            content={post.content}
-                            proseminHeight="50vh"
-                        />
-                    </div>
+                {/* 본문 — 에디터와 동일 폭 (prose/좌우 padding 없음) */}
+                <div className="bg-white min-h-[200px]">
+                    <Viewer
+                        content={post.content}
+                        postTitle={post.title}
+                        proseminHeight="50vh"
+                        showTableOfContents
+                    />
                 </div>
 
             </div>

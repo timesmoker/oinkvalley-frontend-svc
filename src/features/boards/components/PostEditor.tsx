@@ -1,23 +1,26 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {Box, Button, Stack,} from '@mui/material'
 import { useRouter } from 'next/navigation'
 import type { JSONContent } from "@tiptap/core";
 import {
     LinkBubbleMenu,
-    MenuButton,
     RichTextEditor,
     TableBubbleMenu,
     type RichTextEditorRef,
 } from "mui-tiptap";
-import Lock from "@mui/icons-material/Lock";
-import LockOpen from "@mui/icons-material/LockOpen";
-import TextFields from "@mui/icons-material/TextFields";
 import axios from 'axios'
+import type { TableOfContentData } from "@tiptap/extension-table-of-contents";
 import EditorMenuControls from "./EditorMenuControls";
 import useExtensions from "./useExtensions";
+import BoardDragHandle from "@/features/boards/components/BoardDragHandle";
+import BoardPostTocRail from "@/features/boards/components/BoardPostTocRail";
+import { boardPostProseMirrorSx } from "@/features/boards/lib/boardPostContentLayout";
+import { proseMirrorDragHandleStyles } from "@/features/boards/lib/proseMirrorDragHandleStyles";
+import type { BoardTocItem } from "@/features/boards/lib/extractTocFromJson";
 import { createPost, updatePost } from "@/features/boards/api/boardMutations";
+import { openAllDetails } from "@/features/boards/lib/detailsDom";
 
 
 export default function PostEditor({
@@ -43,16 +46,30 @@ export default function PostEditor({
 
 }) {
     const isEdit = mode === 'edit'
-    const [isEditable, setIsEditable] = useState(true);
-    const [showMenuBar, setShowMenuBar] = useState(true);
 
     const router = useRouter()
     const [title, setTitle] = useState(initialTitle ?? '')
     const [submitting, setSubmitting] = useState(false)
+    const [tocItems, setTocItems] = useState<BoardTocItem[]>([])
     const rteRef = useRef<RichTextEditorRef>(null);
+    const handleTocUpdate = useCallback((data: TableOfContentData) => {
+        setTocItems(
+            data.map((item) => ({
+                id: item.id,
+                textContent: item.textContent,
+                level: item.level,
+            })),
+        )
+    }, [])
     const extensions = useExtensions({
         placeholder: "Add your own content here...",
+        scope: "post",
+        onTableOfContentsUpdate: handleTocUpdate,
     });
+    const dragHandleTippyOptions = useMemo(
+        () => ({ placement: "left-start" as const }),
+        [],
+    )
     const isStickyDisabled = disableStickyMenuBar ?? false
 
     useEffect(() => {
@@ -62,7 +79,11 @@ export default function PostEditor({
     useEffect(() => {
         if (!isEdit || !initialContent) return
         const t = window.setTimeout(() => {
-            rteRef.current?.editor?.commands.setContent(initialContent)
+            const editor = rteRef.current?.editor;
+            editor?.commands.setContent(initialContent);
+            if (editor) {
+                requestAnimationFrame(() => openAllDetails(editor.view.dom));
+            }
         }, 0)
         return () => window.clearTimeout(t)
     }, [isEdit, initialContent, postId])
@@ -126,26 +147,20 @@ export default function PostEditor({
         <>
             <Box
                 sx={{
-                    minHeight: '60%',
+                    minHeight: "60%",
+                    width: "100%",
+                    ...proseMirrorDragHandleStyles,
                     "& .ProseMirror": {
-                        minHeight: '50vh',
-                        padding: '1rem',
-                        overflowWrap: 'break-word',
-                        wordBreak: 'break-word',
-
-                        "& ol, & ul": {
-                            paddingLeft: '1.5rem', // 들여쓰기
-                            marginLeft: 0,
-                        },
-
+                        minHeight: "50vh",
                         "& h1, & h2, & h3, & h4, & h5, & h6": {
-                            scrollMarginTop: showMenuBar ? 50 : 0,
+                            scrollMarginTop: 50,
                         },
+                        ...boardPostProseMirrorSx,
                     },
                 }}
             >
                 <input
-                    className="text-2xl font-bold border-b p-2 outline-none w-full truncate"
+                    className="mb-2 w-full truncate rounded-md border border-gray-300 bg-white px-3 py-2 text-2xl font-bold outline-none focus:border-gray-400"
                     placeholder="제목을 입력하세요"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
@@ -155,26 +170,18 @@ export default function PostEditor({
                     key={isEdit ? `edit-${postId}` : 'create'}
                     ref={rteRef}
                     extensions={extensions}
-                    editable={isEditable}
+                    editable
                     editorProps={{}}
                     renderControls={() => <EditorMenuControls />}
                     RichTextFieldProps={{
-                        // The "outlined" variant is the default (shown here only as
-                        // example), but can be changed to "standard" to remove the outlined
-                        // field border from the editor
                         variant: "outlined",
                         MenuBarProps: {
-                            hide: !showMenuBar,
                             disableSticky: isStickyDisabled,
                         },
-
-                        // Below is an example of adding a toggle within the outlined field
-                        // for showing/hiding the editor menu bar, and a "submit" button for
-                        // saving/viewing the HTML content
                         footer: (
                             <Stack
                                 direction="row"
-                                spacing={2}
+                                justifyContent="flex-end"
                                 sx={{
                                     borderTopStyle: "solid",
                                     borderTopWidth: 1,
@@ -182,53 +189,31 @@ export default function PostEditor({
                                     px: 1.5,
                                 }}
                             >
-                                <MenuButton
-                                    value="formatting"
-                                    tooltipLabel={
-                                        showMenuBar ? "Hide formatting" : "Show formatting"
-                                    }
-                                    size="small"
-                                    onClick={() => {
-                                        setShowMenuBar((currentState) => !currentState);
-                                    }}
-                                    selected={showMenuBar}
-                                    IconComponent={TextFields}
-                                />
-
-                                <MenuButton
-                                    value="formatting"
-                                    tooltipLabel={
-                                        isEditable
-                                            ? "Prevent edits (use read-only mode)"
-                                            : "Allow edits"
-                                    }
-                                    size="small"
-                                    onClick={() => {
-                                        setIsEditable((currentState) => !currentState);
-                                    }}
-                                    selected={!isEditable}
-                                    IconComponent={isEditable ? Lock : LockOpen}
-                                />
-
                                 <Button
                                     variant="contained"
                                     size="small"
-                                    onClick={handleSave} disabled={submitting}
+                                    onClick={handleSave}
+                                    disabled={submitting}
                                 >
-                                    {isEdit ? "수정 저장" : "Save"}
+                                    {isEdit ? "수정 저장" : "저장"}
                                 </Button>
                             </Stack>
                         ),
                     }}
                 >
-                    {() => (
+                    {(editor) => (
                         <>
+                            <BoardDragHandle
+                                editor={editor}
+                                tippyOptions={dragHandleTippyOptions}
+                            />
                             <LinkBubbleMenu />
                             <TableBubbleMenu />
                         </>
                     )}
                 </RichTextEditor>
             </Box>
+            <BoardPostTocRail items={tocItems} postTitle={title} />
         </>
     )
 }
