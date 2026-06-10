@@ -1,6 +1,7 @@
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
 import { useTheme } from "@mui/material";
 import MenuButtonDetails from "@/features/boards/components/MenuButtonDetails";
+import MenuButtonInsertImage from "@/features/boards/components/MenuButtonInsertImage";
 import {
     MenuButtonAddTable,
     MenuButtonBlockquote,
@@ -103,7 +104,9 @@ export default function EditorMenuControls({ scope = "post" }: { scope?: "post" 
 
             {!isComment && <MenuButtonEditLink />}
 
-            {!isComment && <MenuDivider />}
+            <MenuButtonInsertImage />
+
+            <MenuDivider />
 
             <MenuSelectTextAlign
                 emptyLabel={

@@ -113,8 +113,7 @@ const DefaultTextAlignLeft = Extension.create({
 });
 
 /**
- * A hook for providing a default set of useful extensions for the MUI-Tiptap
- * editor.
+ * Board ProseMirror extensions — node/mark contract SOT: {@code board/content-schema.json}.
  */
 export default function useExtensions({
   placeholder,
