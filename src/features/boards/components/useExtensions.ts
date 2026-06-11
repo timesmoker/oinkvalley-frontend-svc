@@ -232,7 +232,8 @@ export default function useExtensions({
       Gapcursor,
       TextAlign.configure({
         types: ["heading", "paragraph", "image"],
-        defaultAlignment: "left",
+        /* paragraph 는 DefaultTextAlignLeft 가 left 지정. image 는 Board*Image default center */
+        defaultAlignment: null,
       }),
       BlockIndent,
       DefaultTextAlignLeft,

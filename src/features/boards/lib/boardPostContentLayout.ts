@@ -272,17 +272,15 @@ export const boardPostProseMirrorSx = {
         paddingLeft: "1.5rem",
         marginLeft: 0,
     },
-    /* 이미지 — textAlign attr(기본 center) 따라 정렬. 에디터는 NodeView가 처리, 뷰어는 style 셀렉터 */
-    "& img": {
-        display: "block",
+    /* 이미지 — wrapper text-align (에디터 NodeView · 뷰어 renderHTML 동일). mui-tiptap inline-flex 덮음 */
+    "& [data-board-image]": {
+        width: "100%",
+    },
+    "&& [data-board-image] img:not(.ProseMirror-separator)": {
+        display: "inline-block",
         maxWidth: "100%",
-    },
-    '& img[style*="text-align: center"]': {
-        marginLeft: "auto",
-        marginRight: "auto",
-    },
-    '& img[style*="text-align: right"]': {
-        marginLeft: "auto",
+        height: "auto",
+        verticalAlign: "top",
     },
     ...proseMirrorDetailsStyles,
 } as const;
