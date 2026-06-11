@@ -6,7 +6,7 @@ import BoardTableOfContents from "@/features/boards/components/BoardTableOfConte
 import { BOARD_POST_TOC_FIXED_SX } from "@/features/boards/lib/boardPostContentLayout";
 import type { BoardTocItem } from "@/features/boards/lib/extractTocFromJson";
 
-/** 게시글 본문 상자 밖 오른쪽 고정 목차 (xl 이상만 표시) */
+/** 게시글 본문 상자 밖 오른쪽 고정 목차 (xl 이상, BOARD_POST_TOC_FIXED_SX) */
 export default function BoardPostTocRail({
     items,
     postTitle,
@@ -14,7 +14,7 @@ export default function BoardPostTocRail({
 }: {
     items: BoardTocItem[];
     postTitle?: string;
-    /** 목차 top을 맞출 요소 — 없으면 기본값 24px */
+    /** 목차 top을 맞출 요소 — Viewer/Editor 본문 래퍼에 연결 */
     anchorRef?: React.RefObject<HTMLElement | null>;
 }) {
     const [top, setTop] = useState<number>(24);

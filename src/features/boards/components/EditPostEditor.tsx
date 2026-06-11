@@ -6,12 +6,14 @@ import PostEditor from "@/features/boards/components/PostEditor";
 export default function EditPostEditor({
   boardSlug,
   boardId,
+  boardName,
   postId,
   initialTitle,
   initialContent,
 }: {
   boardSlug: string;
   boardId: number;
+  boardName: string;
   postId: string;
   initialTitle: string;
   initialContent: JSONContent;
@@ -21,6 +23,7 @@ export default function EditPostEditor({
       mode="edit"
       boardSlug={boardSlug}
       boardId={boardId}
+      boardName={boardName}
       postId={postId}
       initialTitle={initialTitle}
       initialContent={initialContent}

@@ -6,6 +6,6 @@ export default function ViewLayout({
                                    }: {
     children: React.ReactNode
 }) {
-    return <div className="pt-20 px-0 sm:px-6">{children}</div>
+    return <div className="px-0 sm:px-6">{children}</div>
 }
 

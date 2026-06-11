@@ -1,23 +1,40 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import {Box, Button, Stack,} from '@mui/material'
+import {Box, Button, Stack, useMediaQuery, useTheme,} from '@mui/material'
 import { useRouter } from 'next/navigation'
 import type { JSONContent } from "@tiptap/core";
+import { useEditor } from "@tiptap/react";
 import {
     LinkBubbleMenu,
-    RichTextEditor,
+    RichTextEditorProvider,
+    RichTextField,
     TableBubbleMenu,
-    type RichTextEditorRef,
 } from "mui-tiptap";
 import axios from 'axios'
 import type { TableOfContentData } from "@tiptap/extension-table-of-contents";
 import EditorMenuControls from "./EditorMenuControls";
 import useExtensions from "./useExtensions";
 import BoardDragHandle from "@/features/boards/components/BoardDragHandle";
+import BoardEditorSideToolbar from "@/features/boards/components/BoardEditorSideToolbar";
 import BoardPostTocRail from "@/features/boards/components/BoardPostTocRail";
-import { boardPostProseMirrorSx } from "@/features/boards/lib/boardPostContentLayout";
+import { boardEditorLinkBubbleMenuPaperSx } from "@/features/boards/lib/boardEditorLinkBubbleMenu";
+import {
+    boardPostArticleColumnClassName,
+    boardPostArticleProsePaddingTop,
+    boardPostDocumentShellClassName,
+    boardPostEditorRichTextFieldSx,
+    boardPostProseMirrorSx,
+    boardPostTitleBlockClassName,
+    boardPostTitleClassName,
+} from "@/features/boards/lib/boardPostContentLayout";
 import { proseMirrorDragHandleStyles } from "@/features/boards/lib/proseMirrorDragHandleStyles";
+import {
+    BOARD_EDITOR_MENU_BAR_STICKY_OFFSET_PX,
+    boardEditorMenuBarStickySx,
+} from "@/features/boards/lib/boardEditorMenuBarSticky";
+import { BOARD_EDITOR_COMPACT_TOOLBAR_BREAKPOINT } from "@/features/boards/lib/boardEditorToolbarLayout";
+import { proseMirrorEditorSelectionStyles } from "@/features/boards/lib/proseMirrorSelectionStyles";
 import type { BoardTocItem } from "@/features/boards/lib/extractTocFromJson";
 import { createPost, updatePost } from "@/features/boards/api/boardMutations";
 import { openAllDetails } from "@/features/boards/lib/detailsDom";
@@ -27,6 +44,7 @@ export default function PostEditor({
     mode = 'create',
     boardSlug,
     boardId,
+    boardName,
     postId,
     initialTitle,
     initialContent,
@@ -37,6 +55,8 @@ export default function PostEditor({
     /** 저장 후 이동·표시용 URL 슬러그 (`/boards/{boardSlug}`) */
     boardSlug: string;
     boardId: number;
+    /** 페이지 상단 게시판 이름 (글쓰기/수정) */
+    boardName: string;
     /** 수정 모드일 때 대상 글 id */
     postId?: string;
     initialTitle?: string;
@@ -51,7 +71,12 @@ export default function PostEditor({
     const [title, setTitle] = useState(initialTitle ?? '')
     const [submitting, setSubmitting] = useState(false)
     const [tocItems, setTocItems] = useState<BoardTocItem[]>([])
-    const rteRef = useRef<RichTextEditorRef>(null);
+    const editorBodyRef = useRef<HTMLDivElement>(null)
+    const titleRowRef = useRef<HTMLDivElement>(null)
+    const theme = useTheme()
+    const useCompactToolbar = useMediaQuery(
+        theme.breakpoints.down(BOARD_EDITOR_COMPACT_TOOLBAR_BREAKPOINT),
+    )
     const handleTocUpdate = useCallback((data: TableOfContentData) => {
         setTocItems(
             data.map((item) => ({
@@ -71,6 +96,30 @@ export default function PostEditor({
         [],
     )
     const isStickyDisabled = disableStickyMenuBar ?? false
+    const titleInputRef = useRef<HTMLInputElement>(null)
+    const editor = useEditor(
+        {
+            extensions,
+            editable: true,
+            editorProps: {
+                // 본문 맨 앞에서 ↑/Backspace → 제목으로 (노션처럼 한 문서 흐름)
+                handleKeyDown: (view, event) => {
+                    if (event.key !== "ArrowUp" && event.key !== "Backspace") {
+                        return false
+                    }
+                    const { selection } = view.state
+                    if (!selection.empty || selection.from > 1) return false
+                    titleInputRef.current?.focus()
+                    if (event.key === "ArrowUp") {
+                        const len = titleInputRef.current?.value.length ?? 0
+                        titleInputRef.current?.setSelectionRange(len, len)
+                    }
+                    return true
+                },
+            },
+        },
+        [extensions],
+    )
 
     useEffect(() => {
         setTitle(initialTitle ?? '')
@@ -79,18 +128,16 @@ export default function PostEditor({
     useEffect(() => {
         if (!isEdit || !initialContent) return
         const t = window.setTimeout(() => {
-            const editor = rteRef.current?.editor;
             editor?.commands.setContent(initialContent);
             if (editor) {
                 requestAnimationFrame(() => openAllDetails(editor.view.dom));
             }
         }, 0)
         return () => window.clearTimeout(t)
-    }, [isEdit, initialContent, postId])
+    }, [isEdit, initialContent, postId, editor])
 
 
     const handleSave = async () => {
-        const editor = rteRef.current?.editor;
         if (!editor || submitting) return;
         if (isEdit && !postId) {
             alert("글 정보가 없습니다.");
@@ -150,70 +197,146 @@ export default function PostEditor({
                     minHeight: "60%",
                     width: "100%",
                     ...proseMirrorDragHandleStyles,
-                    "& .ProseMirror": {
-                        minHeight: "50vh",
-                        "& h1, & h2, & h3, & h4, & h5, & h6": {
-                            scrollMarginTop: 50,
-                        },
-                        ...boardPostProseMirrorSx,
-                    },
+                    ...proseMirrorEditorSelectionStyles,
+                    ...(useCompactToolbar ? boardEditorMenuBarStickySx : {}),
                 }}
             >
-                <input
-                    className="mb-2 w-full truncate rounded-md border border-gray-300 bg-white px-3 py-2 text-2xl font-bold outline-none focus:border-gray-400"
-                    placeholder="제목을 입력하세요"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                />
-
-                <RichTextEditor
-                    key={isEdit ? `edit-${postId}` : 'create'}
-                    ref={rteRef}
-                    extensions={extensions}
-                    editable
-                    editorProps={{}}
-                    renderControls={() => <EditorMenuControls />}
-                    RichTextFieldProps={{
-                        variant: "outlined",
-                        MenuBarProps: {
-                            disableSticky: isStickyDisabled,
-                        },
-                        footer: (
-                            <Stack
-                                direction="row"
-                                justifyContent="flex-end"
-                                sx={{
-                                    borderTopStyle: "solid",
-                                    borderTopWidth: 1,
-                                    py: 1,
-                                    px: 1.5,
-                                }}
-                            >
-                                <Button
-                                    variant="contained"
-                                    size="small"
-                                    onClick={handleSave}
-                                    disabled={submitting}
-                                >
-                                    {isEdit ? "수정 저장" : "저장"}
-                                </Button>
-                            </Stack>
-                        ),
-                    }}
+                <h1
+                    id="board-post-scroll-anchor"
+                    className="text-2xl font-bold mb-4"
                 >
-                    {(editor) => (
+                    {boardName}
+                </h1>
+
+                <div className={boardPostDocumentShellClassName}>
+                <RichTextEditorProvider
+                    key={isEdit ? `edit-${postId}` : "create"}
+                    editor={editor}
+                >
+                    <Box
+                        ref={editorBodyRef}
+                        sx={{
+                            width: "100%",
+                            minHeight: 200,
+                            ...boardPostEditorRichTextFieldSx,
+                            "& .ProseMirror": {
+                                minHeight: "50vh",
+                                "& h1, & h2, & h3, & h4, & h5, & h6": {
+                                    scrollMarginTop: BOARD_EDITOR_MENU_BAR_STICKY_OFFSET_PX + 48,
+                                },
+                                ...boardPostProseMirrorSx,
+                                paddingTop: boardPostArticleProsePaddingTop,
+                            },
+                        }}
+                    >
+                        <div className={boardPostArticleColumnClassName}>
+                            <div
+                                ref={titleRowRef}
+                                className={boardPostTitleBlockClassName}
+                            >
+                                <input
+                                    ref={titleInputRef}
+                                    className={boardPostTitleClassName}
+                                    placeholder="제목"
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        // Enter/↓ → 본문 맨 앞으로 (제목과 본문이 한 문서)
+                                        if (
+                                            e.key === "Enter" ||
+                                            e.key === "ArrowDown"
+                                        ) {
+                                            e.preventDefault()
+                                            editor
+                                                ?.chain()
+                                                .focus("start")
+                                                .run()
+                                        }
+                                    }}
+                                />
+                            </div>
+                            <RichTextField
+                                variant="standard"
+                                disabled={!editor}
+                                controls={
+                                    useCompactToolbar ? (
+                                        <EditorMenuControls />
+                                    ) : undefined
+                                }
+                                MenuBarProps={
+                                    useCompactToolbar
+                                        ? {
+                                              disableSticky: isStickyDisabled,
+                                              stickyOffset:
+                                                  BOARD_EDITOR_MENU_BAR_STICKY_OFFSET_PX,
+                                          }
+                                        : undefined
+                                }
+                                footer={
+                                    <Stack
+                                        direction="row"
+                                        justifyContent="flex-end"
+                                        sx={{
+                                            borderTop: "1px solid",
+                                            borderColor: "divider",
+                                            py: 1.5,
+                                            px: 2,
+                                            bgcolor: "grey.50",
+                                        }}
+                                    >
+                                        <Button
+                                            variant="contained"
+                                            size="small"
+                                            onClick={handleSave}
+                                            disabled={submitting}
+                                        >
+                                            {isEdit ? "수정 저장" : "저장"}
+                                        </Button>
+                                    </Stack>
+                                }
+                            />
+                        </div>
+                    </Box>
+
+                    {editor && (
                         <>
                             <BoardDragHandle
                                 editor={editor}
                                 tippyOptions={dragHandleTippyOptions}
                             />
-                            <LinkBubbleMenu />
+                            <LinkBubbleMenu
+                                PaperProps={{
+                                    sx: {
+                                        ml: 0.75,
+                                        ...boardEditorLinkBubbleMenuPaperSx,
+                                    },
+                                }}
+                                labels={{
+                                    editLinkAddTitle: "링크",
+                                    editLinkEditTitle: "링크 수정",
+                                    editLinkTextInputLabel: "텍스트",
+                                    editLinkHrefInputLabel: "URL",
+                                    editLinkCancelButtonLabel: "취소",
+                                    editLinkSaveButtonLabel: "저장",
+                                }}
+                            />
                             <TableBubbleMenu />
                         </>
                     )}
-                </RichTextEditor>
+                </RichTextEditorProvider>
+                </div>
             </Box>
-            <BoardPostTocRail items={tocItems} postTitle={title} />
+            {!useCompactToolbar && (
+                <BoardEditorSideToolbar
+                    editor={editor}
+                    anchorRef={editorBodyRef}
+                />
+            )}
+            <BoardPostTocRail
+                items={tocItems}
+                postTitle={title}
+                anchorRef={editorBodyRef}
+            />
         </>
     )
 }

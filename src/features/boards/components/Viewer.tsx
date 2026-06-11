@@ -11,11 +11,13 @@ import useExtensions from "./useExtensions"
 import BoardPostTocRail from "@/features/boards/components/BoardPostTocRail"
 import BoardTableOfContents from "@/features/boards/components/BoardTableOfContents"
 import {
+    boardPostArticleProsePaddingTop,
     boardPostProseMirrorSx,
     boardPostViewerBodySx,
     BOARD_POST_TOC_INLINE_SX,
     BOARD_POST_TOC_INLINE_WRAP_SX,
 } from "@/features/boards/lib/boardPostContentLayout"
+import { proseMirrorReadOnlySelectionStyles } from "@/features/boards/lib/proseMirrorSelectionStyles"
 import { extractTocFromJson } from "@/features/boards/lib/extractTocFromJson"
 import { useDetailsReadOnlyToggle } from "@/features/boards/hooks/useDetailsReadOnlyToggle"
 
@@ -24,15 +26,19 @@ export default function Viewer({
                                    postTitle,
                                    proseminHeight,
                                    showTableOfContents = false,
+                                   embeddedInArticle = false,
                                }: {
     content: JSONContent
     postTitle?: string
     proseminHeight?: string
     /** 게시글 본문 전용 — 목차 사이드바 */
     showTableOfContents?: boolean
+    /** 제목·메타와 같은 문단 컬럼 안 — 본문 상단 padding 제거 */
+    embeddedInArticle?: boolean
 }) {
     const extensions = useExtensions({
         scope: showTableOfContents ? "post" : "comment",
+        mode: "view",
     })
     const containerRef = useRef<HTMLDivElement>(null)
     useDetailsReadOnlyToggle(containerRef)
@@ -62,6 +68,7 @@ export default function Viewer({
                     display: "flex",
                     flexDirection: "column",
                     ...(showTableOfContents ? boardPostViewerBodySx : {}),
+                    ...proseMirrorReadOnlySelectionStyles,
                     "& .ProseMirror": {
                         flex: 1,
                         width: "100%",
@@ -70,6 +77,9 @@ export default function Viewer({
                             scrollMarginTop: 0,
                         },
                         ...boardPostProseMirrorSx,
+                        ...(embeddedInArticle
+                            ? { paddingTop: boardPostArticleProsePaddingTop }
+                            : {}),
                     },
                 }}
             >
