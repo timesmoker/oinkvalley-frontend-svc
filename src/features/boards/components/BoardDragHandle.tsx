@@ -4,6 +4,7 @@ import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { DragHandle } from "@tiptap/extension-drag-handle-react";
 import type { Editor } from "@tiptap/react";
 import type { Props as TippyProps } from "tippy.js";
+import { useEditorDragWheelScroll } from "@/features/boards/hooks/useEditorDragWheelScroll";
 
 export default function BoardDragHandle({
     editor,
@@ -12,6 +13,8 @@ export default function BoardDragHandle({
     editor: Editor;
     tippyOptions: Partial<TippyProps>;
 }) {
+    useEditorDragWheelScroll(editor);
+
     return (
         <DragHandle editor={editor} tippyOptions={tippyOptions}>
             <DragIndicatorIcon

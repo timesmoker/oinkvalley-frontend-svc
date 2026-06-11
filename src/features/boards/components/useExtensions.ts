@@ -43,12 +43,14 @@ import {
   FontSize,
   HeadingWithAnchor,
   LinkBubbleMenuHandler,
-  ResizableImage,
   TableImproved,
 } from "mui-tiptap";
 import HeadingWithAnchorToc from "@/features/boards/components/headingWithAnchorToc";
 import BlockIndent from "@/features/boards/extensions/blockIndent";
+import BoardImagePaste from "@/features/boards/extensions/boardImagePaste";
 import BoardOrderedList from "@/features/boards/extensions/boardOrderedList";
+import BoardReadOnlyImage from "@/features/boards/extensions/boardReadOnlyImage";
+import BoardResizableImage from "@/features/boards/extensions/boardResizableImage";
 import BoardTabKeyboard from "@/features/boards/extensions/boardTabKeyboard";
 import {
     BOARD_POST_HR_CLASS,
@@ -61,6 +63,8 @@ export type UseExtensionsOptions = {
   placeholder?: string;
   /** post: 드래그 핸들·목차·heading anchor id. comment: 본문 편집만 */
   scope?: "post" | "comment";
+  /** view: 읽기 전용 Viewer (이미지 자동 선택·리사이즈 UI 없음) */
+  mode?: "edit" | "view";
   /** TableOfContents extension — heading 목록 갱신 시 호출 (post 전용) */
   onTableOfContentsUpdate?: (data: TableOfContentData) => void;
 };
@@ -118,11 +122,13 @@ const DefaultTextAlignLeft = Extension.create({
 export default function useExtensions({
   placeholder,
   scope = "post",
+  mode = "edit",
   onTableOfContentsUpdate,
 }: UseExtensionsOptions = {}): EditorOptions["extensions"] {
   return useMemo(() => {
     const tocHeadingIds = new Set<string>();
     const isPost = scope === "post";
+    const isView = mode === "view";
 
     const postOnlyExtensions = isPost
       ? [
@@ -137,7 +143,7 @@ export default function useExtensions({
               onTableOfContentsUpdate?.(data);
             },
           }),
-          NodeRange,
+          ...(isView ? [] : [NodeRange]),
           HeadingWithAnchorToc,
         ]
       : [HeadingWithAnchor];
@@ -246,19 +252,27 @@ export default function useExtensions({
           ]
         : []),
 
-      ResizableImage,
-      // When images are dragged, we want to show the "drop cursor" for where they'll
-      // land
-      Dropcursor,
+      isView ? BoardReadOnlyImage : BoardResizableImage,
+      ...(isView
+        ? []
+        : [
+            // When images are dragged, we want to show the "drop cursor" for where they'll
+            // land
+            Dropcursor,
+          ]),
 
       TaskList,
       TaskItem.configure({
         nested: true,
       }),
 
-      Placeholder.configure({
-        placeholder,
-      }),
+      ...(placeholder
+        ? [
+            Placeholder.configure({
+              placeholder,
+            }),
+          ]
+        : []),
 
       // We use the regular `History` (undo/redo) extension when not using
       // collaborative editing
@@ -266,6 +280,8 @@ export default function useExtensions({
 
       // Tab — 목록 sink / 첫 항목 중첩 / 블록 들여쓰기 (표·코드·details Tab은 위임)
       BoardTabKeyboard,
+
+      ...(isView ? [] : [BoardImagePaste]),
     ];
-  }, [placeholder, scope, onTableOfContentsUpdate]);
+  }, [placeholder, scope, mode, onTableOfContentsUpdate]);
 }
