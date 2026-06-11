@@ -144,10 +144,7 @@ const BoardResizableImage = ResizableImage.extend({
                노드 자체 addAttributes 가 글로벌보다 나중에 등록돼 우선함 */
             textAlign: {
                 default: "center",
-                renderHTML: (attributes) =>
-                    attributes.textAlign
-                        ? { style: `text-align: ${attributes.textAlign}` }
-                        : {},
+                renderHTML: () => ({}),
                 parseHTML: (element) =>
                     element.style.textAlign || "center",
             },
