@@ -18,6 +18,13 @@ import {
 import { fetchProfilesByIds } from "@/features/profile/api/profileQueries";
 import PostOwnerActions from "@/features/boards/components/PostOwnerActions";
 import { formatPostDateTime } from "@/features/boards/lib/formatPostDate";
+import {
+    boardPostArticleColumnClassName,
+    boardPostDocumentShellClassName,
+    boardPostMetaRowClassName,
+    boardPostTitleBlockClassName,
+    boardPostTitleClassName,
+} from "@/features/boards/lib/boardPostContentLayout";
 
 const Viewer = dynamic(() => import('@/features/boards/components/Viewer'), { ssr: false });
 const Comments = dynamic(() => import('@/features/boards/components/Comments'), { ssr: false })
@@ -59,31 +66,25 @@ export default async function PostPage({ params }: { params: { slug: string; pos
             {/* 게시판 이름 */}
             <h1 id="board-post-scroll-anchor" className="text-2xl font-bold mb-4">{board.name}</h1>
 
-            {/* 전체 박스 */}
-            <div className="border border-gray-300 rounded-md overflow-hidden text-sm">
-                {/* 제목 줄 */}
-                <div className="border-b px-4 py-2 bg-gray-50 font-medium">
-                    제목 : {post.title}
-                </div>
+            <div className={boardPostDocumentShellClassName}>
+                <div className={boardPostArticleColumnClassName}>
+                    <div className={boardPostTitleBlockClassName}>
+                        <h1 className={boardPostTitleClassName}>{post.title}</h1>
+                    </div>
 
-                {/* 작성자 + 날짜 줄 */}
-                <div className="border-b px-4 py-2 flex justify-between text-sm text-gray-700">
-                    <span>작성자 : {authorDisplay}</span>
+                    <div className={boardPostMetaRowClassName}>
+                        <span>{authorDisplay}</span>
+                        <span>{formatPostDateTime(post.createdAt)}</span>
+                    </div>
 
-                    <span>작성시각 : {formatPostDateTime(post.createdAt)}</span>
-                </div>
-
-
-                {/* 본문 — 에디터와 동일 폭 (prose/좌우 padding 없음) */}
-                <div className="bg-white min-h-[200px]">
                     <Viewer
                         content={post.content}
                         postTitle={post.title}
                         proseminHeight="50vh"
                         showTableOfContents
+                        embeddedInArticle
                     />
                 </div>
-
             </div>
             <PostOwnerActions
                 boardSlug={params.slug}

@@ -1,5 +1,20 @@
 import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
-import { useTheme } from "@mui/material";
+import { Box, useTheme } from "@mui/material";
+import {
+    BOARD_EDITOR_FONT_FAMILY_OPTIONS,
+    BOARD_EDITOR_HEADING_LABELS,
+    boardEditorCompactHeadingSelectInputSx,
+    boardEditorCompactSelectInputSx,
+} from "@/features/boards/lib/boardEditorMenuSelectLabels";
+import { boardEditorCompactMenuBarAlignSelectSx } from "@/features/boards/lib/boardEditorMenuSelectLabels";
+import { getBoardEditorHeadingSelectMenuProps } from "@/features/boards/lib/boardEditorSideToolbarSelect";
+import { boardEditorVerticalMenuControlsSx } from "@/features/boards/lib/boardEditorToolbarLayout";
+import {
+    BoardEditorHighlightColorIcon,
+    BoardEditorTextColorIcon,
+} from "@/features/boards/components/boardEditorColorIcons";
+import EditorMenuControlsVertical from "@/features/boards/components/EditorMenuControlsVertical";
+import BoardMenuSelectFontSize from "@/features/boards/components/BoardMenuSelectFontSize";
 import MenuButtonDetails from "@/features/boards/components/MenuButtonDetails";
 import MenuButtonInsertImage from "@/features/boards/components/MenuButtonInsertImage";
 import {
@@ -18,8 +33,6 @@ import {
     MenuButtonRedo,
     MenuButtonRemoveFormatting,
     MenuButtonStrikethrough,
-    MenuButtonSubscript,
-    MenuButtonSuperscript,
     MenuButtonTaskList,
     MenuButtonTextColor,
     MenuButtonUnderline,
@@ -28,33 +41,49 @@ import {
     MenuControlsContainer,
     MenuDivider,
     MenuSelectFontFamily,
-    MenuSelectFontSize,
     MenuSelectHeading,
     MenuSelectTextAlign,
     isTouchDevice,
 } from "mui-tiptap";
 
-export default function EditorMenuControls({ scope = "post" }: { scope?: "post" | "comment" }) {
+export default function EditorMenuControls({
+    scope = "post",
+    orientation = "horizontal",
+}: {
+    scope?: "post" | "comment";
+    orientation?: "horizontal" | "vertical";
+}) {
     const theme = useTheme();
     const isComment = scope === "comment";
-    return (
+    const isVertical = orientation === "vertical";
+
+    if (isVertical) {
+        return (
+            <Box sx={boardEditorVerticalMenuControlsSx}>
+                <EditorMenuControlsVertical scope={scope} />
+            </Box>
+        );
+    }
+
+    const controls = (
         <MenuControlsContainer>
             <MenuSelectFontFamily
-                options={[
-                    { label: "Comic Sans", value: "Comic Sans MS, Comic Sans" },
-                    { label: "Cursive", value: "cursive" },
-                    { label: "Monospace", value: "monospace" },
-                    { label: "Serif", value: "serif" },
-                ]}
+                options={[...BOARD_EDITOR_FONT_FAMILY_OPTIONS]}
+                emptyLabel="Font"
+                sx={boardEditorCompactSelectInputSx}
             />
 
             <MenuDivider />
 
-            <MenuSelectHeading />
+            <MenuSelectHeading
+                labels={BOARD_EDITOR_HEADING_LABELS}
+                sx={boardEditorCompactHeadingSelectInputSx}
+                MenuProps={getBoardEditorHeadingSelectMenuProps("horizontal")}
+            />
 
             <MenuDivider />
 
-            <MenuSelectFontSize />
+            <BoardMenuSelectFontSize orientation="horizontal" />
 
             <MenuDivider />
 
@@ -66,13 +95,10 @@ export default function EditorMenuControls({ scope = "post" }: { scope?: "post" 
 
             <MenuButtonStrikethrough />
 
-            <MenuButtonSubscript />
-
-            <MenuButtonSuperscript />
-
             <MenuDivider />
 
             <MenuButtonTextColor
+                IconComponent={BoardEditorTextColorIcon}
                 defaultTextColor={theme.palette.text.primary}
                 swatchColors={[
                     { value: "#000000", label: "Black" },
@@ -87,6 +113,7 @@ export default function EditorMenuControls({ scope = "post" }: { scope?: "post" 
             />
 
             <MenuButtonHighlightColor
+                IconComponent={BoardEditorHighlightColorIcon}
                 swatchColors={[
                     { value: "#595959", label: "Dark grey" },
                     { value: "#dddddd", label: "Light grey" },
@@ -114,6 +141,7 @@ export default function EditorMenuControls({ scope = "post" }: { scope?: "post" 
                         sx={{ fontSize: "1.25rem", color: theme.palette.action.active }}
                     />
                 }
+                sx={boardEditorCompactMenuBarAlignSelectSx}
             />
 
             <MenuDivider />
@@ -167,4 +195,6 @@ export default function EditorMenuControls({ scope = "post" }: { scope?: "post" 
             )}
         </MenuControlsContainer>
     );
+
+    return controls;
 }
