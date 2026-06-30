@@ -2,6 +2,7 @@
 
 import {PostDetail} from "@/features/boards/types/posts";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { getServerApiBaseUrl, getSsrUpstreamAuthFromRequest } from "@/lib/api/serverBaseUrl";
 import {
     fetchBoardMetaBySegment,
@@ -16,18 +17,19 @@ import {
     profilesToNicknameRecord,
 } from "@/features/profile/api/profileSvc";
 import { fetchProfilesByIds } from "@/features/profile/api/profileQueries";
-import PostOwnerActions from "@/features/boards/components/PostOwnerActions";
+import PostOwnerActions from "@/features/boards/post/components/PostOwnerActions";
 import { formatPostDateTime } from "@/features/boards/lib/formatPostDate";
+import { BOARD_POST_DOCUMENT_SHELL_ID } from "@/features/boards/lib/boardPostScrollAnchor";
 import {
     boardPostArticleColumnClassName,
     boardPostDocumentShellClassName,
     boardPostMetaRowClassName,
     boardPostTitleBlockClassName,
     boardPostTitleClassName,
-} from "@/features/boards/lib/boardPostContentLayout";
+} from "@/features/boards/shared/layout/boardPostSurfaceStyles";
 
-const Viewer = dynamic(() => import('@/features/boards/components/Viewer'), { ssr: false });
-const Comments = dynamic(() => import('@/features/boards/components/Comments'), { ssr: false })
+const Viewer = dynamic(() => import('@/features/boards/viewer/components/Viewer'), { ssr: false });
+const Comments = dynamic(() => import('@/features/boards/comment/components/Comments'), { ssr: false })
 
 
 export default async function PostPage({ params }: { params: { slug: string; postId: string } }) {
@@ -64,9 +66,13 @@ export default async function PostPage({ params }: { params: { slug: string; pos
     return (
         <div className="w-full px-0 py-6 sm:px-6 sm:max-w-[950px] sm:mx-auto">
             {/* 게시판 이름 */}
-            <h1 id="board-post-scroll-anchor" className="text-2xl font-bold mb-4">{board.name}</h1>
+            <h1 id="board-post-scroll-anchor" className="text-2xl font-bold mb-4">
+                <Link href={`/boards/${params.slug}`} className="hover:underline">
+                    {board.name}
+                </Link>
+            </h1>
 
-            <div className={boardPostDocumentShellClassName}>
+            <div id={BOARD_POST_DOCUMENT_SHELL_ID} className={boardPostDocumentShellClassName}>
                 <div className={boardPostArticleColumnClassName}>
                     <div className={boardPostTitleBlockClassName}>
                         <h1 className={boardPostTitleClassName}>{post.title}</h1>
