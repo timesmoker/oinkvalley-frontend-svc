@@ -9,7 +9,7 @@ import {
   redirectForbidden,
 } from "@/lib/auth/handleProtectedPageError"
 
-const EditPostEditor = dynamic(() => import("@/features/boards/components/EditPostEditor"), {
+const EditPostEditor = dynamic(() => import("@/features/boards/editor/components/EditPostEditor"), {
   ssr: false,
 })
 

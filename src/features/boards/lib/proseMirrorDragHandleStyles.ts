@@ -1,4 +1,4 @@
-import { boardPostProseMirrorContentPadding } from "@/features/boards/lib/boardPostContentLayout";
+import { boardPostProseMirrorContentPadding } from "@/features/boards/shared/layout/boardPostSurfaceStyles";
 
 /** Drag handle — ProseMirror 왼쪽 여백 + 핸들 표시 */
 export const proseMirrorDragHandleStyles = {

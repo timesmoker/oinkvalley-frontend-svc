@@ -1,6 +1,6 @@
 // src/app/(default)/boards/[slug]/page.tsx
 
-import EntryList from "@/features/boards/components/EntryList";
+import EntryList from "@/features/boards/post/components/EntryList";
 import Link from "next/link";
 import { PostEntries } from "@/features/boards/types/postEntries";
 import { getServerApiBaseUrl, getSsrUpstreamAuthFromRequest } from "@/lib/api/serverBaseUrl";

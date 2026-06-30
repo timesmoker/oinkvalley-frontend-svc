@@ -2,15 +2,7 @@ import { OrderedList } from "@tiptap/extension-ordered-list";
 
 export const BOARD_ORDERED_LIST_MAX_INDENT = 4;
 export const BOARD_ORDERED_LIST_INDENT_STEP_EM = 1.5;
-
-/** listIndent 1→a, 2→i, 3→1. (4단계) */
-export function orderedListMarkerTypeForIndent(level: number): string | null {
-    if (level <= 0) {
-        return null;
-    }
-    const types = ["a", "i", "1", "a"] as const;
-    return types[Math.min(level - 1, types.length - 1)] ?? "a";
-}
+export const BOARD_ORDERED_LIST_INDENT_BASE_OFFSET_REM = 0.2;
 
 /** orderedList — listIndent(들여쓰기) + type(번호 모양), 중첩 ol 없이 단독 a. 지원 */
 const BoardOrderedList = OrderedList.extend({
@@ -37,7 +29,7 @@ const BoardOrderedList = OrderedList.extend({
                     }
                     return {
                         "data-list-indent": String(level),
-                        style: `margin-left: ${level * BOARD_ORDERED_LIST_INDENT_STEP_EM}em`,
+                        style: `margin-left: calc(${level * BOARD_ORDERED_LIST_INDENT_STEP_EM}em + ${BOARD_ORDERED_LIST_INDENT_BASE_OFFSET_REM}rem)`,
                     };
                 },
             },
