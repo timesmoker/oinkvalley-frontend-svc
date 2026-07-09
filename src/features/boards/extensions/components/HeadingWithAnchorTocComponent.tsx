@@ -58,6 +58,7 @@ export default function HeadingWithAnchorTocComponent({
                 textAlign: node.attrs.textAlign,
                 display: "block",
                 fontWeight: 700,
+                fontSize: spacing.fontSize,
                 lineHeight: spacing.lineHeight,
                 marginBlockStart: 0,
                 marginBlockEnd: spacing.marginBlockEnd,

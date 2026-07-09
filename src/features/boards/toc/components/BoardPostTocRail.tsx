@@ -46,7 +46,10 @@ export default function BoardPostTocRail({ items }: { items: BoardTocItem[] }) {
         <Box
             sx={{
                 ...BOARD_POST_TOC_FIXED_SX,
-                top,
+                top: `calc(${top}px + var(--site-header-hidden-offset, 0px))`,
+                width: "max-content",
+                maxWidth: "none",
+                transition: "top 200ms ease",
             }}
         >
             <BoardTableOfContents items={items} />

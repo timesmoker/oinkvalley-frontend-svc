@@ -8,16 +8,12 @@ import {
 import {Box} from '@mui/material'
 import useBoardExtensions from "@/features/boards/shared/hooks/useBoardExtensions"
 import BoardPostTocRail from "@/features/boards/toc/components/BoardPostTocRail"
-import BoardTableOfContents from "@/features/boards/toc/components/BoardTableOfContents"
+import BoardMobileTocPopover from "@/features/boards/toc/components/BoardMobileTocPopover"
 import {
     boardPostArticleProsePaddingTop,
     boardPostViewerBodySx,
 } from "@/features/boards/shared/layout/boardPostSurfaceStyles"
 import { boardPostProseMirrorSx } from "@/features/boards/shared/layout/boardPostProseMirrorStyles"
-import {
-    BOARD_POST_TOC_INLINE_SX,
-    BOARD_POST_TOC_INLINE_WRAP_SX,
-} from "@/features/boards/shared/layout/boardPostLayoutConstants";
 import { proseMirrorReadOnlySelectionStyles } from "@/features/boards/lib/proseMirrorSelectionStyles"
 import { extractTocFromJson } from "@/features/boards/toc/lib/extractTocFromJson"
 import { useDetailsReadOnlyToggle } from "@/features/boards/viewer/hooks/useDetailsReadOnlyToggle"
@@ -50,39 +46,37 @@ export default function Viewer({
 
     return (
         <>
-            {/* xl 미만(우측 목차 숨김)에서만 본문 상단에 인라인 목차 표시 */}
-            {tocItems.length > 0 && (
-                <Box sx={BOARD_POST_TOC_INLINE_WRAP_SX}>
-                    <Box sx={BOARD_POST_TOC_INLINE_SX}>
-                        <BoardTableOfContents
-                            items={tocItems}
-                        />
-                    </Box>
-                </Box>
-            )}
             <Box
-                ref={containerRef}
                 sx={{
+                    position: "relative",
                     width: "100%",
-                    display: "flex",
-                    flexDirection: "column",
-                    ...(showTableOfContents ? boardPostViewerBodySx : {}),
-                    ...proseMirrorReadOnlySelectionStyles,
-                    "& .ProseMirror": {
-                        flex: 1,
-                        width: "100%",
-                        ...(proseminHeight ? { minHeight: proseminHeight } : {}),
-                        "& h1, & h2, & h3, & h4, & h5, & h6": {
-                            scrollMarginTop: 0,
-                        },
-                        ...boardPostProseMirrorSx,
-                        ...(embeddedInArticle
-                            ? { paddingTop: boardPostArticleProsePaddingTop }
-                            : {}),
-                    },
                 }}
             >
-                <RichTextReadOnly content={content} extensions={extensions} />
+                <BoardMobileTocPopover items={tocItems} />
+                <Box
+                    ref={containerRef}
+                    sx={{
+                        width: "100%",
+                        display: "flex",
+                        flexDirection: "column",
+                        ...(showTableOfContents ? boardPostViewerBodySx : {}),
+                        ...proseMirrorReadOnlySelectionStyles,
+                        "& .ProseMirror": {
+                            flex: 1,
+                            width: "100%",
+                            ...(proseminHeight ? { minHeight: proseminHeight } : {}),
+                            "& h1, & h2, & h3, & h4, & h5, & h6": {
+                                scrollMarginTop: 0,
+                            },
+                            ...boardPostProseMirrorSx,
+                            ...(embeddedInArticle
+                                ? { paddingTop: boardPostArticleProsePaddingTop }
+                                : {}),
+                        },
+                    }}
+                >
+                    <RichTextReadOnly content={content} extensions={extensions} />
+                </Box>
             </Box>
             <BoardPostTocRail
                 items={tocItems}

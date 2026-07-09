@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {Box, Button, Stack, useMediaQuery, useTheme,} from '@mui/material'
 import type { JSONContent } from "@tiptap/core";
 import { useEditor } from "@tiptap/react";
@@ -10,7 +10,6 @@ import {
     RichTextField,
     TableBubbleMenu,
 } from "mui-tiptap";
-import type { TableOfContentData } from "@tiptap/extension-table-of-contents";
 import EditorMenuControls from "./EditorMenuControls";
 import useBoardExtensions from "@/features/boards/shared/hooks/useBoardExtensions";
 import BoardDragHandle from "@/features/boards/editor/components/BoardDragHandle";
@@ -34,7 +33,10 @@ import {
 } from "@/features/boards/lib/boardEditorMenuBarSticky";
 import { BOARD_EDITOR_COMPACT_TOOLBAR_BREAKPOINT } from "@/features/boards/lib/boardEditorToolbarLayout";
 import { proseMirrorEditorSelectionStyles } from "@/features/boards/lib/proseMirrorSelectionStyles";
-import type { BoardTocItem } from "@/features/boards/toc/lib/extractTocFromJson";
+import {
+    extractTocFromJson,
+    type BoardTocItem,
+} from "@/features/boards/toc/lib/extractTocFromJson";
 import usePostEditorPersistence from "@/features/boards/editor/hooks/usePostEditorPersistence";
 import { openAllDetails } from "@/features/boards/lib/detailsDom";
 import { BOARD_POST_DOCUMENT_SHELL_ID } from "@/features/boards/lib/boardPostScrollAnchor";
@@ -77,19 +79,9 @@ export default function PostEditor({
     const useCompactToolbar = useMediaQuery(
         theme.breakpoints.down(BOARD_EDITOR_COMPACT_TOOLBAR_BREAKPOINT),
     )
-    const handleTocUpdate = useCallback((data: TableOfContentData) => {
-        setTocItems(
-            data.map((item) => ({
-                id: item.id,
-                textContent: item.textContent,
-                level: item.level,
-            })),
-        )
-    }, [])
     const extensions = useBoardExtensions({
         placeholder: "Add your own content here...",
         scope: "post",
-        onTableOfContentsUpdate: handleTocUpdate,
     });
     const dragHandleTippyOptions = useMemo(
         () => ({ placement: "left-start" as const }),
@@ -130,6 +122,17 @@ export default function PostEditor({
         editor,
         onSuccess,
     });
+
+    // 뷰어와 동일한 추출 경로(extractTocFromJson) — 목차 형태 편집/열람 일치
+    useEffect(() => {
+        if (!editor) return
+        const syncToc = () => setTocItems(extractTocFromJson(editor.getJSON()))
+        syncToc()
+        editor.on("update", syncToc)
+        return () => {
+            editor.off("update", syncToc)
+        }
+    }, [editor])
 
     useEffect(() => {
         setTitle(initialTitle ?? '')
