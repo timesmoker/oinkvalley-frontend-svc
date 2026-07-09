@@ -199,6 +199,8 @@ const BoardTabKeyboard = Extension.create({
                         const ctx = getListItemContext(this.editor.state.selection.$from);
                         if (!ctx) return false;
                         if (!isEmptyListItemNode(ctx.parentList.child(ctx.indexInParent))) return false;
+                        // 첫 항목만 커스텀 처리 — 2번째 이후 빈 항목은 기본 Backspace(이전 항목으로 병합)
+                        if (ctx.indexInParent > 0) return false;
 
                         if (
                             ctx.itemTypeName === "listItem" &&
