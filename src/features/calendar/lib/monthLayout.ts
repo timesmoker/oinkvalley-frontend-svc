@@ -27,6 +27,34 @@ export type WeekSpanBar = {
     isEnd: boolean;
 };
 
+export function dayKeyFromWeekSpanBarClick(
+    clientX: number,
+    barRect: DOMRect,
+    bar: Pick<WeekSpanBar, "colStart" | "colSpan">,
+    weekKeys: (string | null)[],
+    fallback: string,
+): string {
+    if (barRect.width <= 0) return weekKeys[bar.colStart] ?? fallback;
+    const ratio = (clientX - barRect.left) / barRect.width;
+    const colOffset = Math.min(
+        bar.colSpan - 1,
+        Math.max(0, Math.floor(ratio * bar.colSpan)),
+    );
+    return weekKeys[bar.colStart + colOffset] ?? fallback;
+}
+
+export const CREATE_PREVIEW_ENTRY_ID = "__calendar-create-preview__";
+
+export function isMonthSpanBarEntry(entry: CalendarEntry) {
+    if (
+        entry.id === CREATE_PREVIEW_ENTRY_ID ||
+        entry.id === "__calendar-drag-preview__"
+    ) {
+        return true;
+    }
+    return entry.allDay && isMultiDayEntry(entry);
+}
+
 export function layoutWeekSpanBars(
     weekKeys: (string | null)[],
     entries: CalendarEntry[],
@@ -39,8 +67,7 @@ export function layoutWeekSpanBars(
 
     const candidates = entries.filter(
         (e) =>
-            e.allDay &&
-            isMultiDayEntry(e) &&
+            isMonthSpanBarEntry(e) &&
             e.startDate <= weekEnd &&
             e.endDate >= weekStart,
     );
@@ -68,7 +95,18 @@ export function layoutWeekSpanBars(
         });
     }
 
-    raw.sort((a, b) => a.colStart - b.colStart || b.colSpan - a.colSpan);
+    raw.sort((a, b) => {
+        const previewRank = (entry: CalendarEntry) =>
+            entry.id === CREATE_PREVIEW_ENTRY_ID ||
+            entry.id === "__calendar-drag-preview__"
+                ? 0
+                : 1;
+        return (
+            previewRank(a.entry) - previewRank(b.entry) ||
+            a.colStart - b.colStart ||
+            b.colSpan - a.colSpan
+        );
+    });
 
     const laneEnds: number[] = [];
     const placed: WeekSpanBar[] = [];
@@ -94,6 +132,12 @@ export function singleDayEntriesForCell(
     dayKey: string,
 ): CalendarEntry[] {
     return entries.filter((e) => {
+        if (
+            e.id === CREATE_PREVIEW_ENTRY_ID ||
+            e.id === "__calendar-drag-preview__"
+        ) {
+            return false;
+        }
         if (e.startDate === e.endDate && e.startDate === dayKey) return true;
         if (!e.allDay && entryOverlapsDay(e, dayKey)) return true;
         if (e.allDay && !isMultiDayEntry(e) && e.startDate === dayKey) return true;
@@ -107,6 +151,8 @@ export function spanLaneCount(bars: WeekSpanBar[]) {
 }
 
 export const MONTH_SPAN_BAR_H = 20;
+/** 생성 프리뷰 막대 높이 (기본 대비 ~25%) */
+export const MONTH_SPAN_PREVIEW_H = Math.round(MONTH_SPAN_BAR_H * 1.25);
 /** 종일 막대 줄 사이 = 칩 사이 = 종일↔칩 (Tailwind gap-1) */
 export const MONTH_SPAN_BAR_GAP = 4;
 export const MONTH_CHIP_GAP = 4;

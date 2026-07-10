@@ -1,58 +1,41 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Settings } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
     CalendarEntry,
-    CalendarEntryType,
+    CalendarEntryCreateDefaults,
     CalendarEventScope,
     CalendarViewMode,
 } from "@/features/calendar/types/calendar";
 import { formatMonthTitle } from "@/features/calendar/lib/monthGrid";
 import {
-    addDays,
     dateKey,
     entriesForDay,
     formatDayTitle,
     formatWeekRange,
-    isDateInRollingWeek,
     parseDateKey,
     sortEntriesForDay,
     startOfRollingWeek,
 } from "@/features/calendar/lib/entryUtils";
-import {
-    loadTagFilterSelection,
-    saveTagFilterSelection,
-} from "@/features/calendar/lib/calendarTagFilterStorage";
+import { daySelectionFromDate } from "@/features/calendar/lib/draftUtils";
 import DaySummaryPanel from "@/features/calendar/components/panel/DaySummaryPanel";
 import { useCalendarEntries } from "@/features/calendar/hooks/useCalendarEntries";
-import { useCalendarTags } from "@/features/calendar/hooks/useCalendarTags";
+import { useCalendarTagFilters } from "@/features/calendar/hooks/useCalendarTagFilters";
+import { useCalendarEntryDraft } from "@/features/calendar/hooks/useCalendarEntryDraft";
+import { useFloatingDayPanel } from "@/features/calendar/hooks/useFloatingDayPanel";
 import MonthView from "@/features/calendar/components/views/MonthView";
 import WeekView from "@/features/calendar/components/views/WeekView";
 import DayView from "@/features/calendar/components/views/DayView";
 import CalendarLeftSidebar from "@/features/calendar/components/sidebar/CalendarLeftSidebar";
-import EntryTypeFilter from "@/features/calendar/components/tags/EntryTypeFilter";
-import SidebarMiniCalendar from "@/features/calendar/components/sidebar/SidebarMiniCalendar";
+import CalendarHeader from "@/features/calendar/components/CalendarHeader";
 import CalendarSettingsPanel from "@/features/calendar/components/CalendarSettingsPanel";
+import MobileTagFilterSheet from "@/features/calendar/components/tags/MobileTagFilterSheet";
+import FloatingDayPanelOverlay, {
+    floatingDayPanelClass,
+} from "@/features/calendar/components/panel/FloatingDayPanelOverlay";
+import { SIDE_RAIL } from "@/features/calendar/components/calendarLayout";
 import { useAuthStore } from "@/features/auth/store/useAuthStore";
 import { cn } from "@/lib/utils";
-
-const VIEW_TABS: { id: CalendarViewMode; label: string }[] = [
-    { id: "month", label: "월" },
-    { id: "week", label: "주" },
-    { id: "day", label: "일" },
-];
-
-/** 좌·우 사이드 패널 공통 레일 */
-const SIDE_RAIL =
-    "flex h-full min-h-0 w-60 shrink-0 flex-col px-2 py-4 lg:w-64";
-
-function daySelectionFromDate(date: Date) {
-    return {
-        key: dateKey(date.getFullYear(), date.getMonth(), date.getDate()),
-        label: formatDayTitle(date),
-    };
-}
 
 export default function CalendarApp() {
     const today = useMemo(() => new Date(), []);
@@ -67,127 +50,79 @@ export default function CalendarApp() {
         orderedTagIds,
         tagIds,
         defaultVisibleTagIdStrings,
-        addTag,
-        deleteTag,
         renameTag,
         setTagVisibility,
-        setTagHidden,
-        followTag,
-    } = useCalendarTags({ currentUserId: userId, enabled: calendarEnabled });
+        typeFilter,
+        excludedTypeFilter,
+        toggleTypeFilter,
+        toggleExcludedTypeFilter,
+        selectAllTypes,
+        handleAddTag,
+        handleDeleteTag,
+        handleFollowTag,
+        handleHiddenTag,
+    } = useCalendarTagFilters({ currentUserId: userId, enabled: calendarEnabled });
+
     const [eventScope, setEventScope] = useState<CalendarEventScope>("visible");
     const [viewMode, setViewMode] = useState<CalendarViewMode>("month");
     const [viewDate, setViewDate] = useState(() => new Date(today));
-    const [typeFilter, setTypeFilter] = useState<Set<CalendarEntryType>>(() => new Set());
-    const tagFilterInitRef = useRef(false);
-    const [selectedDay, setSelectedDay] = useState(() => daySelectionFromDate(new Date()));
-    const [panelEntryId, setPanelEntryId] = useState<string | null>(null);
-    const [panelAdding, setPanelAdding] = useState(false);
+    const [selectedDay, setSelectedDay] = useState(() =>
+        daySelectionFromDate(new Date()),
+    );
     const [settingsOpen, setSettingsOpen] = useState(false);
-    const [saveError, setSaveError] = useState<string | null>(null);
+    const [tagPanelOpen, setTagPanelOpen] = useState(false);
 
-    const handleAddTag = useCallback(
-        async (label: string) => {
-            const id = await addTag(label);
-            if (id) setTypeFilter((prev) => new Set([...prev, id]));
-            return id;
-        },
-        [addTag],
-    );
+    const {
+        compactCreate,
+        dayPanelOpen,
+        dayPanelSide,
+        openPanel,
+        requestPanel,
+        closePanel,
+        clearPendingAnchor,
+    } = useFloatingDayPanel();
 
-    const handleDeleteTag = useCallback(
-        async (id: string) => {
-            const removed = await deleteTag(id);
-            if (removed) {
-                setTypeFilter((prev) => {
-                    const next = new Set(prev);
-                    next.delete(id);
-                    return next;
-                });
-            }
-            return removed;
-        },
-        [deleteTag],
-    );
-
-    const handleFollowTag = useCallback(
-        async (tag: Parameters<typeof followTag>[0]) => {
-            const id = await followTag(tag);
-            if (id) setTypeFilter((prev) => new Set([...prev, id]));
-            return id;
-        },
-        [followTag],
-    );
-
-    const handleHiddenTag = useCallback(
-        async (id: string, hidden: boolean) => {
-            const changed = await setTagHidden(id, hidden);
-            if (changed) {
-                setTypeFilter((prev) => {
-                    const next = new Set(prev);
-                    if (hidden) next.delete(id);
-                    else next.add(id);
-                    return next;
-                });
-            }
-            return changed;
-        },
-        [setTagHidden],
-    );
-
+    /** xl 이상으로 커지면 모바일 태그 시트 닫기 */
     useEffect(() => {
-        if (!calendarEnabled) {
-            tagFilterInitRef.current = false;
-        }
-    }, [calendarEnabled]);
-
-    /** 태그 목록 로드 후: 저장된 체크 상태 복원 또는 전체 선택 */
-    useEffect(() => {
-        if (!calendarEnabled || tagIds.length === 0) return;
-
-        if (!tagFilterInitRef.current) {
-            tagFilterInitRef.current = true;
-            let initial: Set<CalendarEntryType>;
-            if (userId != null) {
-                const stored = loadTagFilterSelection(userId);
-                const valid = stored?.filter((id) => tagIds.includes(id)) ?? [];
-                initial = valid.length > 0 ? new Set(valid) : new Set(tagIds);
-            } else {
-                initial = new Set(tagIds);
-            }
-            setTypeFilter(initial);
-            return;
-        }
-
-        setTypeFilter((prev) => {
-            const next = new Set([...prev].filter((id) => tagIds.includes(id)));
-            return next.size === prev.size ? prev : next;
-        });
-    }, [calendarEnabled, tagIds, userId]);
-
-    useEffect(() => {
-        if (!calendarEnabled || userId == null || !tagFilterInitRef.current) return;
-        saveTagFilterSelection(userId, [...typeFilter]);
-    }, [typeFilter, userId, calendarEnabled]);
+        const query = window.matchMedia("(min-width: 1280px)");
+        const close = () => {
+            if (query.matches) setTagPanelOpen(false);
+        };
+        close();
+        query.addEventListener("change", close);
+        return () => query.removeEventListener("change", close);
+    }, []);
 
     const { entries, loading, error, authRequired, addEntry, updateEntry, deleteEntry } =
         useCalendarEntries({
             viewMode,
             viewDate,
-            typeFilter,
+            includeTypes: typeFilter,
+            excludeTypes: excludedTypeFilter,
             tagIds,
             scope: eventScope,
             isLoggedIn: calendarEnabled,
             enabled: hasHydrated,
         });
 
-    const toggleTypeFilter = (type: CalendarEntryType) => {
-        setTypeFilter((prev) => {
-            const next = new Set(prev);
-            if (next.has(type)) next.delete(type);
-            else next.add(type);
-            return next;
-        });
-    };
+    const handleSelectDate = useCallback((date: Date) => {
+        setSelectedDay(daySelectionFromDate(date));
+    }, []);
+
+    const draft = useCalendarEntryDraft({
+        entries,
+        addEntry,
+        updateEntry,
+        deleteEntry,
+        userId,
+        viewMode,
+        selectedDayKey: selectedDay.key,
+        onSelectDate: handleSelectDate,
+        onViewDateChange: setViewDate,
+        requestPanel,
+        openPanel,
+        clearPendingPanelAnchor: clearPendingAnchor,
+    });
 
     const year = viewDate.getFullYear();
     const month = viewDate.getMonth();
@@ -198,21 +133,13 @@ export default function CalendarApp() {
         return formatDayTitle(viewDate);
     }, [viewMode, year, month, viewDate]);
 
-    const isTodayView = useMemo(() => {
-        if (viewMode === "month") {
-            return year === today.getFullYear() && month === today.getMonth();
-        }
-        if (viewMode === "week") {
-            return isDateInRollingWeek(today, viewDate);
-        }
-        return (
-            viewDate.getFullYear() === today.getFullYear() &&
-            viewDate.getMonth() === today.getMonth() &&
-            viewDate.getDate() === today.getDate()
-        );
-    }, [viewMode, year, month, viewDate, today]);
+    const closeOverlayPanels = useCallback(() => {
+        closePanel();
+        setTagPanelOpen(false);
+    }, [closePanel]);
 
     const goPrev = () => {
+        closeOverlayPanels();
         setViewDate((prev) => {
             const d = new Date(prev);
             if (viewMode === "month") {
@@ -225,6 +152,7 @@ export default function CalendarApp() {
     };
 
     const goNext = () => {
+        closeOverlayPanels();
         setViewDate((prev) => {
             const d = new Date(prev);
             if (viewMode === "month") {
@@ -238,131 +166,194 @@ export default function CalendarApp() {
 
     const goToday = () => {
         setViewDate(new Date(today));
-        setPanelEntryId(null);
+        draft.resetAllDrafts();
         setSelectedDay(daySelectionFromDate(today));
+        closeOverlayPanels();
     };
+
+    const handleViewModeChange = (mode: CalendarViewMode) => {
+        closeOverlayPanels();
+        if (mode === "week" || mode === "day") {
+            const { year: y, month: mo, day } = parseDateKey(selectedDay.key);
+            setViewDate(new Date(y, mo, day));
+        }
+        setViewMode(mode);
+    };
+
+    /** 달력 빈칸 클릭 라우팅: 수정 반영 > 추가 반영 > 목록/추가 전환 */
+    const handleDayGridClick = useCallback(
+        (date: Date) => {
+            const key = dateKey(date.getFullYear(), date.getMonth(), date.getDate());
+            const emptyDayDefaults = {
+                allDay: true as const,
+                startDate: key,
+                endDate: key,
+            };
+            if (draft.editingEntryId && draft.editDraftPreview) {
+                draft.applyEditDefaultsForDate(date, emptyDayDefaults);
+                return;
+            }
+            if (draft.panelAdding && (draft.addDraftHasTitle || draft.hasAddDraftInput)) {
+                draft.applyAddDefaultsForDate(date, emptyDayDefaults);
+                return;
+            }
+            // 같은 날 상세 중 → 목록
+            if (selectedDay.key === key && draft.panelEntryId) {
+                draft.clearAddDraft();
+                openPanel(key);
+                return;
+            }
+            // 작은 화면: 빈칸은 항상 바로 추가.
+            // panelAdding(제목 없는 빈 초안)이어도 목록으로 떨어지지 않게 —
+            // 예전엔 !panelAdding 가드 때문에 clearAddDraft+목록으로 빠졌음.
+            if (compactCreate) {
+                if (entriesForDay(entries, key).length === 0) {
+                    draft.applyAddDefaultsForDate(date, emptyDayDefaults);
+                    return;
+                }
+                draft.clearAddDraft();
+                setSelectedDay(daySelectionFromDate(date));
+                openPanel(key);
+                return;
+            }
+            // 데스크톱: 선택일 목록일 때만 추가
+            if (!draft.panelAdding && selectedDay.key === key) {
+                draft.applyAddDefaultsForDate(date, emptyDayDefaults);
+                return;
+            }
+            draft.clearAddDraft();
+            setSelectedDay(daySelectionFromDate(date));
+            openPanel(key);
+        },
+        [draft, selectedDay.key, compactCreate, entries, openPanel],
+    );
 
     const selectDayNumber = useCallback(
         (day: number) => {
-            setPanelEntryId(null);
-            setSelectedDay(daySelectionFromDate(new Date(year, month, day)));
+            handleDayGridClick(new Date(year, month, day));
         },
-        [year, month],
+        [year, month, handleDayGridClick],
     );
 
-    const selectDateInCurrentView = useCallback((date: Date) => {
-        setPanelEntryId(null);
-        setSelectedDay(daySelectionFromDate(date));
-    }, []);
+    const selectDateInCurrentView = useCallback(
+        (date: Date) => {
+            handleDayGridClick(date);
+        },
+        [handleDayGridClick],
+    );
 
-    const selectDate = useCallback((date: Date) => {
-        setPanelEntryId(null);
-        setSelectedDay(daySelectionFromDate(date));
-        setViewDate(date);
-    }, []);
+    /** 사이드바 미니 달력 등 — 뷰 날짜까지 이동 */
+    const selectDate = useCallback(
+        (date: Date) => {
+            const key = dateKey(date.getFullYear(), date.getMonth(), date.getDate());
+            if (draft.editingEntryId && draft.editDraftPreview) {
+                draft.applyEditDefaultsForDate(date, {
+                    allDay: true,
+                    startDate: key,
+                    endDate: key,
+                });
+                return;
+            }
+            if (draft.panelAdding && (draft.addDraftHasTitle || draft.hasAddDraftInput)) {
+                draft.applyAddDefaultsForDate(date, {
+                    allDay: true,
+                    startDate: key,
+                    endDate: key,
+                });
+                return;
+            }
+            draft.clearAddDraft();
+            setSelectedDay(daySelectionFromDate(date));
+            setViewDate(date);
+            openPanel(key);
+        },
+        [draft, openPanel],
+    );
 
+    /** 달력 위 일정 클릭: 수정/추가 반영 또는 상세·목록 열기 */
     const selectEntryFromMain = useCallback(
         (entry: CalendarEntry, dayKey?: string) => {
-            setPanelAdding(false);
-            setPanelEntryId(entry.id);
+            if (draft.editingEntryId && draft.editDraftPreview) {
+                draft.applyEditDefaultsForEntry(entry, dayKey);
+                return;
+            }
+            if (draft.panelAdding && (draft.addDraftHasTitle || draft.hasAddDraftInput)) {
+                draft.applyAddDefaultsForEntry(entry, dayKey);
+                return;
+            }
             const key = dayKey ?? entry.startDate;
             const { year: y, month: mo, day } = parseDateKey(key);
             const date = new Date(y, mo, day);
+            draft.setPanelAdding(false);
+            draft.setCreateDefaults(null);
+            draft.resetAddDraftPreview();
+            draft.resetEditDraftPreview();
             setSelectedDay(daySelectionFromDate(date));
             if (viewMode === "day") setViewDate(date);
+            // 이미 선택된 날의 일정 → 상세, 다른 날 → 그날 목록
+            draft.setPanelEntryId(key === selectedDay.key ? entry.id : null);
+            openPanel(key);
         },
-        [viewMode],
+        [draft, viewMode, selectedDay.key, openPanel],
     );
 
-    const handleSidebarDaySelect = useCallback((date: Date) => {
-        selectDateInCurrentView(date);
-    }, [selectDateInCurrentView]);
+    /** 빈칸/타임라인에서 일정 추가 시작 (드래그 종료 포함) */
+    const startAddForDate = useCallback(
+        (date: Date, defaults?: CalendarEntryCreateDefaults) => {
+            const key = dateKey(date.getFullYear(), date.getMonth(), date.getDate());
+            if (draft.editingEntryId && draft.editDraftPreview) {
+                draft.applyEditDefaultsForDate(date, defaults);
+                return;
+            }
+            // 빈 추가 중 + defaults 없음: compact는 그날 추가로 유지, 데스크톱만 목록으로
+            if (
+                draft.panelAdding &&
+                !draft.addDraftHasTitle &&
+                !draft.hasAddDraftInput &&
+                !defaults
+            ) {
+                if (compactCreate) {
+                    draft.applyAddDefaultsForDate(date, {
+                        allDay: true,
+                        startDate: key,
+                        endDate: key,
+                    });
+                    return;
+                }
+                draft.clearAddDraft();
+                setSelectedDay(daySelectionFromDate(date));
+                if (viewMode === "day") setViewDate(date);
+                openPanel(key);
+                return;
+            }
+            draft.applyAddDefaultsForDate(date, defaults);
+        },
+        [draft, compactCreate, viewMode, openPanel],
+    );
+
+    const handleSidebarDaySelect = useCallback(
+        (date: Date) => {
+            selectDateInCurrentView(date);
+        },
+        [selectDateInCurrentView],
+    );
 
     useEffect(() => {
         if (viewMode !== "day") return;
-        const key = dateKey(
-            viewDate.getFullYear(),
-            viewDate.getMonth(),
-            viewDate.getDate(),
-        );
         setSelectedDay(daySelectionFromDate(viewDate));
     }, [viewMode, viewDate]);
 
-    const openPanelAdd = useCallback(() => {
-        setPanelEntryId(null);
-        setPanelAdding(true);
-        setSaveError(null);
-    }, []);
-
-    const cancelPanelAdd = useCallback(() => {
-        setPanelAdding(false);
-        setSaveError(null);
-    }, []);
-
-    const selectedDayEntries = useMemo(() => {
-        if (!selectedDay) return [];
-        return sortEntriesForDay(entriesForDay(entries, selectedDay.key));
-    }, [selectedDay, entries]);
-
-    const panelEntry = useMemo(() => {
-        if (!panelEntryId) return null;
-        return entries.find((e) => e.id === panelEntryId) ?? null;
-    }, [panelEntryId, entries]);
-
-    useEffect(() => {
-        setPanelEntryId(null);
-        setPanelAdding(false);
-    }, [selectedDay.key]);
-
-    useEffect(() => {
-        if (panelEntryId && !panelEntry) {
-            setPanelEntryId(null);
-        }
-    }, [panelEntryId, panelEntry]);
-
-    const handlePanelAddEntry = async (
-        entry: Parameters<typeof addEntry>[0],
-    ): Promise<void> => {
-        setSaveError(null);
-        try {
-            await addEntry(entry);
-        } catch {
-            setSaveError("일정을 저장하지 못했습니다.");
-            throw new Error("save failed");
-        }
-    };
-
-    const handlePanelUpdateEntry = useCallback(
-        async (entryId: string, entry: Parameters<typeof addEntry>[0]) => {
-            setSaveError(null);
-            try {
-                await updateEntry(entryId, entry);
-            } catch {
-                setSaveError("일정을 수정하지 못했습니다.");
-                throw new Error("update failed");
-            }
-        },
-        [updateEntry],
+    const selectedDayEntries = useMemo(
+        () => sortEntriesForDay(entriesForDay(entries, selectedDay.key)),
+        [selectedDay.key, entries],
     );
 
-    const handlePanelDeleteEntry = useCallback(
-        async (entryId: string) => {
-            setSaveError(null);
-            try {
-                await deleteEntry(entryId);
-                setPanelEntryId(null);
-            } catch {
-                setSaveError("일정을 삭제하지 못했습니다.");
-                throw new Error("delete failed");
-            }
-        },
-        [deleteEntry],
-    );
+    const retargetEmptySelection =
+        compactCreate ||
+        (draft.panelAdding && draft.addDraftHasTitle) ||
+        Boolean(draft.editingEntryId);
 
-    const showCalendar =
-        hasHydrated &&
-        !authRequired &&
-        (isLoggedIn ? typeFilter.size > 0 : true);
+    const showCalendar = hasHydrated && !authRequired;
     const showInitialLoading = loading && entries.length === 0;
     const statusMessages = (
         <>
@@ -380,10 +371,10 @@ export default function CalendarApp() {
                 </p>
             )}
             {error && <p className="px-2 text-sm text-destructive">{error}</p>}
-            {isLoggedIn && typeFilter.size === 0 && (
+            {isLoggedIn && typeFilter.size === 0 && excludedTypeFilter.size === 0 && (
                 <p className="px-2 text-xs text-muted-foreground">
-                    태그를 모두 끄면 볼 수 있는 일정 전체가 표시됩니다. 태그를
-                    켜면 해당 태그가 붙은 일정만 필터됩니다.
+                    + 태그가 없으면 일정이 표시되지 않습니다. 전체를 누르면 모든
+                    태그가 다시 표시됩니다.
                 </p>
             )}
             {!isLoggedIn && hasHydrated && (
@@ -394,10 +385,61 @@ export default function CalendarApp() {
         </>
     );
 
+    /** 데스크톱 레일·모바일 오버레이 공용 일정 패널 props */
+    const daySummaryProps = {
+        dateKey: selectedDay.key,
+        entries: selectedDayEntries,
+        allTags,
+        selectedEntry: draft.panelEntry,
+        editingEntryId: draft.editingEntryId,
+        isAdding: draft.panelAdding,
+        createDefaults: draft.panelCreateDefaults,
+        editDefaults: draft.panelEditDefaults,
+        saveError: draft.saveError,
+        onSelectEntry: (entry: CalendarEntry) => {
+            draft.setPanelAdding(false);
+            draft.setPanelEntryId(entry.id);
+            draft.resetAddDraftPreview();
+        },
+        onBackFromEntry: () => draft.setPanelEntryId(null),
+        onStartEdit: draft.startEditEntry,
+        onCancelEdit: draft.resetEditDraftPreview,
+        onStartAdd: draft.openPanelAdd,
+        onCancelAdd: draft.cancelPanelAdd,
+        onAddEntry: draft.handlePanelAddEntry,
+        onUpdateEntry: draft.handlePanelUpdateEntry,
+        onDeleteEntry: draft.handlePanelDeleteEntry,
+        onAddTag: handleAddTag,
+        onAddDraftHasTitleChange: draft.setAddDraftHasTitle,
+        onAddDraftPreviewChange: draft.handleAddDraftPreviewChange,
+        onEditDraftPreviewChange: draft.handleEditDraftPreviewChange,
+        defaultOwnerId: userId,
+    };
+
+    const commonViewProps = {
+        entries: draft.calendarEntries,
+        orderedTagIds,
+        createPreview: draft.activeRangePreview,
+        onCreateEntry: startAddForDate,
+        onCreateDragRange: draft.applyActiveDragDefaultsForDate,
+        onSelectEntry: selectEntryFromMain,
+        onResizeCreatePreview: draft.resizeActivePreviewSchedule,
+        onActivateCreatePreview: draft.activateAddDraftPanel,
+    };
+
+    const pageScrollOnSmall = viewMode === "week" || viewMode === "day";
+
     return (
-        <div className="flex h-full min-h-0 w-full">
+        <div
+            className={cn(
+                "flex w-full",
+                pageScrollOnSmall
+                    ? "h-auto min-h-[calc(100dvh-5rem)] md:h-full md:min-h-0"
+                    : "h-[calc(100dvh-5rem)] min-h-0 md:h-full",
+            )}
+        >
             <CalendarLeftSidebar
-                className={cn(SIDE_RAIL, "hidden border-r border-border md:flex")}
+                className={cn(SIDE_RAIL, "hidden border-r border-border xl:flex")}
                 viewDate={viewDate}
                 today={today}
                 viewMode={viewMode}
@@ -406,219 +448,104 @@ export default function CalendarApp() {
                 onDaySelect={handleSidebarDaySelect}
                 allTags={visibleTags}
                 typeFilter={typeFilter}
+                excludedTypeFilter={excludedTypeFilter}
                 onToggleTypeFilter={toggleTypeFilter}
-                onSelectAllTypes={() => setTypeFilter(new Set(tagIds))}
+                onToggleExcludedTypeFilter={toggleExcludedTypeFilter}
+                onSelectAllTypes={selectAllTypes}
                 onAddTag={handleAddTag}
                 status={statusMessages}
             />
 
             {/* 가운데: 툴바 + 달력 (+ 오른쪽 일정 패널) */}
             <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                <header className="flex shrink-0 flex-wrap items-center gap-2 border-b border-border px-3 py-2 sm:gap-3 sm:px-4">
-                    <button
-                        type="button"
-                        onClick={goToday}
-                        className="rounded border border-border px-3 py-1.5 text-sm font-medium hover:bg-muted/50"
-                    >
-                        오늘
-                    </button>
+                <CalendarHeader
+                    title={headerTitle}
+                    viewMode={viewMode}
+                    eventScope={eventScope}
+                    isLoggedIn={isLoggedIn}
+                    onGoToday={goToday}
+                    onGoPrev={goPrev}
+                    onGoNext={goNext}
+                    onEventScopeChange={setEventScope}
+                    onViewModeChange={handleViewModeChange}
+                    onOpenTagPanel={() => {
+                        closePanel();
+                        setTagPanelOpen(true);
+                    }}
+                    onOpenSettings={() => setSettingsOpen(true)}
+                />
 
-                    <div className="flex rounded-md border border-border p-0.5 text-xs">
-                        <button
-                            type="button"
-                            disabled={!isLoggedIn}
-                            onClick={() => setEventScope("visible")}
-                            className={cn(
-                                "rounded px-2 py-1 font-medium transition",
-                                eventScope === "visible"
-                                    ? "bg-muted text-foreground"
-                                    : "text-muted-foreground",
-                                !isLoggedIn && "opacity-50",
-                            )}
-                        >
-                            볼 수 있는 일정
-                        </button>
-                        <button
-                            type="button"
-                            disabled={!isLoggedIn}
-                            onClick={() => setEventScope("mine")}
-                            className={cn(
-                                "rounded px-2 py-1 font-medium transition",
-                                eventScope === "mine"
-                                    ? "bg-muted text-foreground"
-                                    : "text-muted-foreground",
-                                !isLoggedIn && "opacity-50",
-                            )}
-                        >
-                            내 일정
-                        </button>
-                    </div>
-
-                    <div className="flex items-center">
-                        <button
-                            type="button"
-                            onClick={goPrev}
-                            className="rounded-full p-2 hover:bg-muted/60"
-                            aria-label="이전"
-                        >
-                            <ChevronLeft className="h-5 w-5" />
-                        </button>
-                        <button
-                            type="button"
-                            onClick={goNext}
-                            className="rounded-full p-2 hover:bg-muted/60"
-                            aria-label="다음"
-                        >
-                            <ChevronRight className="h-5 w-5" />
-                        </button>
-                    </div>
-
-                    <h1 className="min-w-0 flex-1 truncate text-lg font-normal sm:text-xl">
-                        {headerTitle}
-                    </h1>
-
-                    <div className="flex rounded-md border border-border p-0.5 text-sm">
-                        {VIEW_TABS.map((tab) => (
-                            <button
-                                key={tab.id}
-                                type="button"
-                                onClick={() => {
-                                    if (tab.id === "week" || tab.id === "day") {
-                                        const { year: y, month: mo, day } =
-                                            parseDateKey(selectedDay.key);
-                                        setViewDate(new Date(y, mo, day));
-                                    }
-                                    setViewMode(tab.id);
-                                }}
-                                className={cn(
-                                    "rounded px-3 py-1 font-medium transition",
-                                    viewMode === tab.id
-                                        ? "bg-muted text-foreground"
-                                        : "text-muted-foreground hover:bg-muted/50",
-                                )}
-                            >
-                                {tab.label}
-                            </button>
-                        ))}
-                    </div>
-
-                    <button
-                        type="button"
-                        onClick={() => setSettingsOpen(true)}
-                        className="rounded-md p-2 text-muted-foreground transition hover:bg-muted/60 hover:text-foreground"
-                        aria-label="캘린더 설정"
-                    >
-                        <Settings className="h-5 w-5" />
-                    </button>
-                </header>
-
-                {/* 모바일: 미니 달력 + 태그 */}
-                <div className="border-b border-border px-3 py-3 md:hidden">
-                    <SidebarMiniCalendar
-                        viewDate={viewDate}
-                        today={today}
-                        viewMode={viewMode}
-                        selectedDayKey={selectedDay.key}
-                        onViewDateChange={setViewDate}
-                        onDaySelect={handleSidebarDaySelect}
-                    />
-                    <EntryTypeFilter
-                        layout="inline"
-                        allTags={visibleTags}
-                        active={typeFilter}
-                        onToggle={toggleTypeFilter}
-                        onSelectAll={() => setTypeFilter(new Set(tagIds))}
-                        onAddTag={handleAddTag}
-                    />
-                    {statusMessages}
-                </div>
-
-                <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+                <div
+                    className={cn(
+                        "flex min-w-0 flex-1 flex-col",
+                        pageScrollOnSmall
+                            ? "overflow-visible md:min-h-0 md:overflow-hidden"
+                            : "min-h-0 overflow-hidden",
+                    )}
+                >
                     {showCalendar && viewMode === "month" && (
                         <MonthView
                             embedded
                             year={year}
                             month={month}
                             today={today}
-                            entries={entries}
-                            orderedTagIds={orderedTagIds}
                             selectedDayKey={selectedDay.key}
+                            retargetEmptySelection={retargetEmptySelection}
                             onSelectDay={selectDayNumber}
                             onSelectAdjacentDate={selectDateInCurrentView}
-                            onSelectEntry={selectEntryFromMain}
+                            onCancelCreateDrag={draft.cancelCreateDrag}
+                            {...commonViewProps}
                         />
                     )}
                     {showCalendar && viewMode === "week" && (
                         <WeekView
                             embedded
                             viewDate={viewDate}
-                            entries={entries}
-                            orderedTagIds={orderedTagIds}
                             selectedDayKey={selectedDay.key}
-                            onSelectDay={selectDate}
-                            onSelectEntry={selectEntryFromMain}
+                            retargetEmptySelection={retargetEmptySelection}
+                            onSelectDay={selectDateInCurrentView}
+                            onCancelCreateDrag={draft.cancelCreateDrag}
+                            {...commonViewProps}
                         />
                     )}
                     {showCalendar && viewMode === "day" && (
                         <DayView
                             viewDate={viewDate}
-                            entries={entries}
-                            orderedTagIds={orderedTagIds}
-                            onSelectEntry={selectEntryFromMain}
+                            deferCreatePanelUntilDrag={compactCreate}
+                            {...commonViewProps}
                         />
                     )}
                 </div>
-
-                {showCalendar && (
-                    <DaySummaryPanel
-                        className={cn(
-                            SIDE_RAIL,
-                            "max-h-[40vh] w-full border-t border-border xl:hidden",
-                        )}
-                        dateKey={selectedDay.key}
-                        entries={selectedDayEntries}
-                        allTags={allTags}
-                        selectedEntry={panelEntry}
-                        isAdding={panelAdding}
-                        saveError={saveError}
-                        onSelectEntry={(entry) => {
-                            setPanelAdding(false);
-                            setPanelEntryId(entry.id);
-                        }}
-                        onBackFromEntry={() => setPanelEntryId(null)}
-                        onStartAdd={openPanelAdd}
-                        onCancelAdd={cancelPanelAdd}
-                        onAddEntry={handlePanelAddEntry}
-                        onUpdateEntry={handlePanelUpdateEntry}
-                        onDeleteEntry={handlePanelDeleteEntry}
-                        onAddTag={handleAddTag}
-                        defaultOwnerId={userId}
-                    />
-                )}
             </div>
 
-            {showCalendar && (
+            {showCalendar && !compactCreate && (
                 <DaySummaryPanel
-                    className={cn(SIDE_RAIL, "hidden border-l border-border xl:flex")}
-                    dateKey={selectedDay.key}
-                    entries={selectedDayEntries}
-                    allTags={allTags}
-                    selectedEntry={panelEntry}
-                    isAdding={panelAdding}
-                    saveError={saveError}
-                    onSelectEntry={(entry) => {
-                        setPanelAdding(false);
-                        setPanelEntryId(entry.id);
-                    }}
-                    onBackFromEntry={() => setPanelEntryId(null)}
-                    onStartAdd={openPanelAdd}
-                    onCancelAdd={cancelPanelAdd}
-                    onAddEntry={handlePanelAddEntry}
-                    onUpdateEntry={handlePanelUpdateEntry}
-                    onDeleteEntry={handlePanelDeleteEntry}
-                    onAddTag={handleAddTag}
-                    defaultOwnerId={userId}
+                    className={cn(SIDE_RAIL, "border-l border-border")}
+                    {...daySummaryProps}
                 />
+            )}
+
+            {tagPanelOpen && (
+                <MobileTagFilterSheet
+                    onClose={() => setTagPanelOpen(false)}
+                    status={statusMessages}
+                    allTags={visibleTags}
+                    included={typeFilter}
+                    excluded={excludedTypeFilter}
+                    onToggleInclude={toggleTypeFilter}
+                    onToggleExclude={toggleExcludedTypeFilter}
+                    onSelectAll={selectAllTypes}
+                    onAddTag={handleAddTag}
+                />
+            )}
+
+            {showCalendar && compactCreate && dayPanelOpen && (
+                <FloatingDayPanelOverlay side={dayPanelSide} onClose={closePanel}>
+                    <DaySummaryPanel
+                        className={floatingDayPanelClass(dayPanelSide)}
+                        {...daySummaryProps}
+                    />
+                </FloatingDayPanelOverlay>
             )}
 
             <CalendarSettingsPanel

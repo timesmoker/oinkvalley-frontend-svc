@@ -26,6 +26,28 @@ export type CalendarEventScope = "visible" | "mine";
 
 export type CalendarViewMode = "month" | "week" | "day";
 
+export type CalendarEntryCreateDefaults = {
+    allDay?: boolean;
+    startDate?: string;
+    endDate?: string;
+    startTime?: string;
+    endTime?: string;
+    title?: string;
+    tags?: CalendarEntryType[];
+    previewKind?: "create" | "edit" | "selected";
+};
+
+/** 추가 폼 작성 중 뷰어 프리뷰용 초안 */
+export type CalendarEntryDraftPreview = {
+    title: string;
+    tags: CalendarEntryType[];
+    allDay?: boolean;
+    startDate?: string;
+    endDate?: string;
+    startTime?: string;
+    endTime?: string;
+};
+
 /** 태그 추가 핸들러 — API 연동 시 Promise 반환 가능 */
 export type CalendarAddTagFn = (label: string) => string | null | Promise<string | null>;
 

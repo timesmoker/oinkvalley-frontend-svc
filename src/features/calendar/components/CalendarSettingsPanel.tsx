@@ -173,8 +173,14 @@ export default function CalendarSettingsPanel({
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-start justify-end bg-black/20 p-3 sm:p-4">
-            <aside className="flex h-full w-full max-w-lg flex-col rounded-lg border border-border bg-background shadow-xl">
+        <div
+            className="fixed inset-0 z-50 flex items-start justify-end bg-black/20 p-3 sm:p-4"
+            onPointerDown={onClose}
+        >
+            <aside
+                className="flex h-full w-full max-w-lg flex-col rounded-lg border border-border bg-background shadow-xl"
+                onPointerDown={(e) => e.stopPropagation()}
+            >
                 <CalendarSettingsHeader
                     tab={tab}
                     stats={stats}

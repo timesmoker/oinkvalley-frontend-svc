@@ -21,14 +21,15 @@ import type {
 import {
     calendarRangeForView,
     entryOverlapsRange,
-    entryMatchesTagFilter,
+    entryPassesTagFilter,
     typesForApiQuery,
 } from "@/features/calendar/lib/entryUtils";
 
 type UseCalendarEntriesArgs = {
     viewMode: CalendarViewMode;
     viewDate: Date;
-    typeFilter: ReadonlySet<CalendarEntryType>;
+    includeTypes: ReadonlySet<CalendarEntryType>;
+    excludeTypes: ReadonlySet<CalendarEntryType>;
     tagIds: CalendarEntryType[];
     scope: CalendarEventScope;
     isLoggedIn: boolean;
@@ -39,7 +40,8 @@ type UseCalendarEntriesArgs = {
 export function useCalendarEntries({
     viewMode,
     viewDate,
-    typeFilter,
+    includeTypes,
+    excludeTypes,
     tagIds,
     scope,
     isLoggedIn,
@@ -67,7 +69,7 @@ export function useCalendarEntries({
         }
 
         const { from, to } = calendarRangeForView(viewMode, viewDate);
-        const types = isLoggedIn ? typesForApiQuery(typeFilter, tagIds) : [];
+        const types = isLoggedIn ? typesForApiQuery(includeTypes, tagIds) : [];
 
         if (!hasLoadedOnce.current) setLoading(true);
         setAuthRequired(false);
@@ -88,7 +90,7 @@ export function useCalendarEntries({
         } finally {
             setLoading(false);
         }
-    }, [viewMode, viewDate, typeFilter, tagIds, scope, isLoggedIn, enabled]);
+    }, [viewMode, viewDate, includeTypes, tagIds, scope, isLoggedIn, enabled]);
 
     useEffect(() => {
         void loadRangeEntries();
@@ -98,11 +100,10 @@ export function useCalendarEntries({
         if (!isLoggedIn) {
             return rangeEntries;
         }
-        if (typeFilter.size === 0) {
-            return rangeEntries;
-        }
-        return rangeEntries.filter((e) => entryMatchesTagFilter(e, typeFilter));
-    }, [rangeEntries, typeFilter, isLoggedIn]);
+        return rangeEntries.filter((e) =>
+            entryPassesTagFilter(e, includeTypes, excludeTypes),
+        );
+    }, [rangeEntries, includeTypes, excludeTypes, isLoggedIn]);
 
     const addEntry = useCallback(
         async (input: CreateCalendarEntryRequest) => {

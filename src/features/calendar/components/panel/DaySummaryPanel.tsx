@@ -1,7 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { CalendarAddTagFn, CalendarEntry } from "@/features/calendar/types/calendar";
+import type {
+    CalendarAddTagFn,
+    CalendarEntry,
+    CalendarEntryCreateDefaults,
+    CalendarEntryDraftPreview,
+} from "@/features/calendar/types/calendar";
 import type { CreateCalendarEntryRequest } from "@/features/calendar/api/calendarTypes";
 import { allTagIds, type CalendarTagDef } from "@/features/calendar/tags/tagRegistry";
 import {
@@ -26,16 +31,24 @@ type DaySummaryPanelProps = {
     entries: CalendarEntry[];
     allTags: CalendarTagDef[];
     selectedEntry: CalendarEntry | null;
+    editingEntryId?: string | null;
     isAdding: boolean;
+    createDefaults?: CalendarEntryCreateDefaults | null;
+    editDefaults?: CalendarEntryCreateDefaults | null;
     saveError?: string | null;
     onSelectEntry: (entry: CalendarEntry) => void;
     onBackFromEntry: () => void;
+    onStartEdit?: (entry: CalendarEntry) => void;
+    onCancelEdit?: () => void;
     onStartAdd: () => void;
     onCancelAdd: () => void;
     onAddEntry: (entry: CreateCalendarEntryRequest) => Promise<void>;
     onUpdateEntry?: (entryId: string, entry: CreateCalendarEntryRequest) => Promise<void>;
     onDeleteEntry?: (entryId: string) => Promise<void>;
     onAddTag: CalendarAddTagFn;
+    onAddDraftHasTitleChange?: (hasTitle: boolean) => void;
+    onAddDraftPreviewChange?: (draft: CalendarEntryDraftPreview) => void;
+    onEditDraftPreviewChange?: (draft: CalendarEntryDraftPreview) => void;
     defaultOwnerId?: number | null;
     ownerLabel?: string;
 };
@@ -111,20 +124,27 @@ export default function DaySummaryPanel({
     entries,
     allTags,
     selectedEntry,
+    editingEntryId = null,
     isAdding,
+    createDefaults,
+    editDefaults,
     saveError,
     onSelectEntry,
     onBackFromEntry,
+    onStartEdit,
+    onCancelEdit,
     onStartAdd,
     onCancelAdd,
     onAddEntry,
     onUpdateEntry,
     onDeleteEntry,
     onAddTag,
+    onAddDraftHasTitleChange,
+    onAddDraftPreviewChange,
+    onEditDraftPreviewChange,
     defaultOwnerId = null,
     ownerLabel,
 }: DaySummaryPanelProps) {
-    const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
     const [deleting, setDeleting] = useState(false);
     const date = useMemo(() => {
         const { year, month, day } = parseDateKey(dateKey);
@@ -159,15 +179,18 @@ export default function DaySummaryPanel({
                 <p className="mb-3 shrink-0 text-sm font-medium text-foreground">일정 추가</p>
                 <div className="min-h-0 flex-1 overflow-y-auto">
                     <EntryForm
-                        key={dateKey}
+                        key="calendar-entry-create"
                         allTags={allTags}
                         dateKey={dateKey}
+                        createDefaults={createDefaults ?? undefined}
                         defaultOwnerId={defaultOwnerId}
                         ownerLabel={ownerLabel}
                         saveError={saveError}
                         onAdd={onAddEntry}
                         onAddTag={onAddTag}
                         onSaved={onCancelAdd}
+                        onDraftHasTitleChange={onAddDraftHasTitleChange}
+                        onDraftPreviewChange={onAddDraftPreviewChange}
                     />
                 </div>
             </aside>
@@ -177,12 +200,14 @@ export default function DaySummaryPanel({
     if (selectedEntry) {
         const schedule = formatEntrySchedule(selectedEntry);
         const dateRange = formatEntryDateRange(selectedEntry);
+        const canEdit =
+            defaultOwnerId != null &&
+            selectedEntry.ownerId === defaultOwnerId;
 
         if (isEditingSelectedEntry) {
             const canDelete =
                 onDeleteEntry != null &&
-                defaultOwnerId != null &&
-                selectedEntry.ownerId === defaultOwnerId;
+                canEdit;
 
             const handleDelete = async () => {
                 if (!onDeleteEntry || !canDelete) return;
@@ -190,7 +215,7 @@ export default function DaySummaryPanel({
                 setDeleting(true);
                 try {
                     await onDeleteEntry(selectedEntry.id);
-                    setEditingEntryId(null);
+                    onCancelEdit?.();
                     onBackFromEntry();
                 } finally {
                     setDeleting(false);
@@ -204,7 +229,7 @@ export default function DaySummaryPanel({
                         weekday={weekday}
                         entryCount={entries.length}
                     />
-                    <PanelBackButton label="상세로" onClick={() => setEditingEntryId(null)} />
+                    <PanelBackButton label="상세로" onClick={() => onCancelEdit?.()} />
                     <p className="mb-3 shrink-0 text-sm font-medium text-foreground">
                         일정 수정
                     </p>
@@ -215,12 +240,14 @@ export default function DaySummaryPanel({
                             dateKey={dateKey}
                             defaultOwnerId={defaultOwnerId}
                             initialEntry={selectedEntry}
+                            createDefaults={editDefaults ?? undefined}
                             submitLabel="수정"
                             saveError={saveError}
                             onAdd={onAddEntry}
                             onUpdate={onUpdateEntry}
                             onAddTag={onAddTag}
-                            onSaved={() => setEditingEntryId(null)}
+                            onSaved={() => onCancelEdit?.()}
+                            onDraftPreviewChange={onEditDraftPreviewChange}
                             footer={
                                 canDelete ? (
                                     <button
@@ -265,14 +292,16 @@ export default function DaySummaryPanel({
                     />
                 </div>
 
-                <button
-                    type="button"
-                    onClick={() => setEditingEntryId(selectedEntry.id)}
-                    className="mb-4 flex shrink-0 items-center justify-center gap-1.5 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition hover:bg-muted/60"
-                >
-                    <Pencil className="h-3.5 w-3.5" />
-                    수정
-                </button>
+                {canEdit && (
+                    <button
+                        type="button"
+                        onClick={() => onStartEdit?.(selectedEntry)}
+                        className="mb-4 flex shrink-0 items-center justify-center gap-1.5 rounded-md border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition hover:bg-muted/60"
+                    >
+                        <Pencil className="h-3.5 w-3.5" />
+                        수정
+                    </button>
+                )}
 
                 <dl className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-1">
                     <DetailRow label="날짜" value={dateRange} />

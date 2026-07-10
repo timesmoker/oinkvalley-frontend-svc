@@ -4,7 +4,7 @@ export default function MonthOverflowDots({ count }: { count: number }) {
 
     return (
         <span
-            className="mt-auto flex flex-col items-center justify-center gap-0 py-0.5 text-[10px] leading-none text-muted-foreground"
+            className="mt-auto flex flex-col items-center justify-center gap-0 py-px text-[10px] font-medium leading-[0.55] text-neutral-500 dark:text-neutral-400"
             title={`${count}개 더 보기`}
             aria-hidden
         >
