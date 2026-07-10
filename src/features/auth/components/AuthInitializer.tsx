@@ -14,6 +14,15 @@ function consumeGuestParam(): boolean {
   return true;
 }
 
+/** 게스트 로그인 직후 샘플 일정 시드. 실패·비활성은 조용히 무시. */
+async function bootstrapGuestCalendar(): Promise<void> {
+  try {
+    await apiClient.post("/events/guest-bootstrap");
+  } catch {
+    /* event-svc 비활성 또는 거부 — UI 영향 없음 */
+  }
+}
+
 export default function AuthInitializer() {
   const { login, logout, setHasHydrated } = useAuthStore();
 
@@ -44,6 +53,7 @@ export default function AuthInitializer() {
         try {
           const res = await apiClient.post("/auth/guest");
           if (!cancelled && res.status === 200 && (await fetchMe())) {
+            await bootstrapGuestCalendar();
             if (!cancelled) setHasHydrated(true);
             return;
           }
