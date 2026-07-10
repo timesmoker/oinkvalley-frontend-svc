@@ -9,7 +9,7 @@ import {
     redirectForbidden,
 } from "@/lib/auth/handleProtectedPageError";
 
-const CreatePostEditor = dynamic(() => import('@/features/boards/components/CreatePostEditor'), {
+const CreatePostEditor = dynamic(() => import('@/features/boards/editor/components/CreatePostEditor'), {
     ssr: false,
 })
 
@@ -27,8 +27,11 @@ export default async function WritePage({ params }: { params: { slug: string } }
 
     return (
         <div className="w-full px-0 py-6 sm:px-6 sm:max-w-[950px] sm:mx-auto">
-            <h1 className="text-xl font-bold mb-4">글쓰기</h1>
-            <CreatePostEditor boardSlug={params.slug} boardId={board.id} />
+            <CreatePostEditor
+                boardSlug={params.slug}
+                boardId={board.id}
+                boardName={board.name}
+            />
         </div>
     )
 }

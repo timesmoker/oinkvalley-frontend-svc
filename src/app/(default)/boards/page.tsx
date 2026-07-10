@@ -1,5 +1,5 @@
 // src/app/(default)/boards/page.tsx
-import BoardSelector from "@/features/boards/components/BoardSelector";
+import BoardSelector from "@/features/boards/post/components/BoardSelector";
 import { fetchBoards } from "@/features/boards/api/boardSvc";
 import { getServerApiBaseUrl, getSsrUpstreamAuthFromRequest } from "@/lib/api/serverBaseUrl";
 

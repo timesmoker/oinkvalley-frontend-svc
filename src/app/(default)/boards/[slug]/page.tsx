@@ -1,6 +1,6 @@
 // src/app/(default)/boards/[slug]/page.tsx
 
-import EntryList from "@/features/boards/components/EntryList";
+import EntryList from "@/features/boards/post/components/EntryList";
 import Link from "next/link";
 import { PostEntries } from "@/features/boards/types/postEntries";
 import { getServerApiBaseUrl, getSsrUpstreamAuthFromRequest } from "@/lib/api/serverBaseUrl";
@@ -66,12 +66,14 @@ export default async function BoardPage({
             />
 
             <div className="mt-8 flex justify-end">
-                <Link
-                    href={`/boards/${params.slug}/write`}
-                    className="bg-blue-600 text-white px-5 py-2 rounded-lg shadow-md hover:bg-blue-500 transition"
-                >
-                    글쓰기
-                </Link>
+                {board.canWrite ? (
+                    <Link
+                        href={`/boards/${params.slug}/write`}
+                        className="bg-blue-600 text-white px-5 py-2 rounded-lg shadow-md hover:bg-blue-500 transition"
+                    >
+                        글쓰기
+                    </Link>
+                ) : null}
             </div>
         </div>
     );
