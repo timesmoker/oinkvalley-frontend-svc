@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
     CalendarAddTagFn,
     CalendarEntry,
+    CalendarEntryCreateDefaults,
+    CalendarEntryDraftPreview,
     CalendarEntryType,
 } from "@/features/calendar/types/calendar";
 import type { CreateCalendarEntryRequest } from "@/features/calendar/api/calendarTypes";
@@ -16,7 +18,9 @@ import {
 import type { CalendarTagDef } from "@/features/calendar/tags/tagRegistry";
 import EntryTagPicker from "@/features/calendar/components/tags/EntryTagPicker";
 import ParticipantEmailInput from "@/features/calendar/components/entry/ParticipantEmailInput";
+import DatePickerField from "@/features/calendar/components/entry/DatePickerField";
 import { cn } from "@/lib/utils";
+import { Link2, MessageSquareText, UserPlus } from "lucide-react";
 
 type EntryFormProps = {
     allTags: CalendarTagDef[];
@@ -27,13 +31,27 @@ type EntryFormProps = {
     saveError?: string | null;
     className?: string;
     initialEntry?: CalendarEntry;
+    createDefaults?: CalendarEntryCreateDefaults;
     submitLabel?: string;
     onAdd: (entry: CreateCalendarEntryRequest) => Promise<void>;
     onUpdate?: (entryId: string, entry: CreateCalendarEntryRequest) => Promise<void>;
     onAddTag: CalendarAddTagFn;
     onSaved?: () => void;
+    onDraftHasTitleChange?: (hasTitle: boolean) => void;
+    onDraftPreviewChange?: (draft: CalendarEntryDraftPreview) => void;
     footer?: React.ReactNode;
 };
+
+function createDefaultsSignature(defaults: CalendarEntryCreateDefaults | undefined) {
+    if (!defaults) return null;
+    return [
+        defaults.startDate ?? "",
+        defaults.endDate ?? "",
+        defaults.allDay ?? "",
+        defaults.startTime ?? "",
+        defaults.endTime ?? "",
+    ].join("|");
+}
 
 const inputClass =
     "w-full rounded-md border border-border bg-background text-sm outline-none focus:border-foreground/40 focus:ring-1 focus:ring-foreground/20";
@@ -45,39 +63,116 @@ export default function EntryForm({
     saveError,
     className,
     initialEntry,
+    createDefaults,
     submitLabel = "저장",
     onAdd,
     onUpdate,
     onAddTag,
     onSaved,
+    onDraftHasTitleChange,
+    onDraftPreviewChange,
     footer,
 }: EntryFormProps) {
     const isEdit = Boolean(initialEntry && onUpdate);
     const knownIds = new Set(allTags.map((t) => t.id));
-    const [title, setTitle] = useState(initialEntry?.title ?? "");
+    const [title, setTitle] = useState(initialEntry?.title ?? createDefaults?.title ?? "");
     const defaultTagId = allTags.find((t) => !t.hidden)?.id ?? allTags[0]?.id;
     const [selectedTags, setSelectedTags] = useState<Set<CalendarEntryType>>(() => {
         if (initialEntry?.tags.length) return new Set(initialEntry.tags);
+        if (createDefaults?.tags?.length) return new Set(createDefaults.tags);
         if (defaultTagId) return new Set([defaultTagId]);
         return new Set();
     });
-    const [startDate, setStartDate] = useState(initialEntry?.startDate ?? initialDateKey);
-    const [endDate, setEndDate] = useState(initialEntry?.endDate ?? initialDateKey);
+    const [startDate, setStartDate] = useState(
+        initialEntry?.startDate ?? createDefaults?.startDate ?? initialDateKey,
+    );
+    const [endDate, setEndDate] = useState(
+        initialEntry?.endDate ??
+            createDefaults?.endDate ??
+            createDefaults?.startDate ??
+            initialDateKey,
+    );
     const [note, setNote] = useState(initialEntry?.note ?? "");
     const [link, setLink] = useState(initialEntry?.link ?? "");
     const [participantEmails, setParticipantEmails] = useState<string[]>(
         () => initialEntry?.participantEmails ?? [],
     );
     const [participantDraft, setParticipantDraft] = useState("");
-    const [allDay, setAllDay] = useState(initialEntry?.allDay ?? true);
-    const [startTime, setStartTime] = useState(initialEntry?.startTime ?? "09:00");
-    const [endTime, setEndTime] = useState(initialEntry?.endTime ?? "10:00");
+    const [allDay, setAllDay] = useState(
+        initialEntry?.allDay ?? createDefaults?.allDay ?? true,
+    );
+    const [startTime, setStartTime] = useState(
+        initialEntry?.startTime ?? createDefaults?.startTime ?? "09:00",
+    );
+    const [endTime, setEndTime] = useState(
+        initialEntry?.endTime ?? createDefaults?.endTime ?? "10:00",
+    );
     const [saving, setSaving] = useState(false);
     const [tagError, setTagError] = useState<string | null>(null);
     const [visibility, setVisibility] = useState<"PRIVATE" | "SHARED" | "PUBLIC">(
         () => initialEntry?.visibility ?? "PRIVATE",
     );
     const [formError, setFormError] = useState<string | null>(null);
+    const [showNote, setShowNote] = useState(() => Boolean(initialEntry?.note));
+    const [showParticipants, setShowParticipants] = useState(
+        () => Boolean(initialEntry?.participantEmails?.length),
+    );
+    const [showLink, setShowLink] = useState(() => Boolean(initialEntry?.link));
+    const syncedCreateDefaultsRef = useRef<string | null>(null);
+
+    const publishDraftPreview = useCallback(
+        (patch: Partial<CalendarEntryDraftPreview> = {}) => {
+            const nextTitle = patch.title ?? title;
+            const nextTags = patch.tags ?? [...selectedTags];
+            const draft = {
+                title: nextTitle,
+                tags: nextTags,
+                allDay: patch.allDay ?? allDay,
+                startDate: patch.startDate ?? startDate,
+                endDate: patch.endDate ?? endDate,
+                startTime: patch.startTime ?? startTime,
+                endTime: patch.endTime ?? endTime,
+            };
+            onDraftHasTitleChange?.(draft.title.trim().length > 0);
+            onDraftPreviewChange?.(draft);
+        },
+        [
+            allDay,
+            endDate,
+            endTime,
+            isEdit,
+            onDraftHasTitleChange,
+            onDraftPreviewChange,
+            selectedTags,
+            startDate,
+            startTime,
+            title,
+        ],
+    );
+
+    useEffect(() => {
+        if (!createDefaults) return;
+        const signature = createDefaultsSignature(createDefaults);
+        if (syncedCreateDefaultsRef.current === signature) return;
+        syncedCreateDefaultsRef.current = signature;
+        const nextStartDate = createDefaults.startDate ?? initialDateKey;
+        const nextEndDate =
+            createDefaults.endDate ?? createDefaults.startDate ?? initialDateKey;
+        setStartDate(nextStartDate);
+        setEndDate(nextEndDate < nextStartDate ? nextStartDate : nextEndDate);
+        setAllDay(createDefaults.allDay ?? true);
+        setStartTime(createDefaults.startTime ?? "09:00");
+        setEndTime(createDefaults.endTime ?? "10:00");
+    }, [createDefaults, initialDateKey, isEdit]);
+
+    useEffect(() => {
+        publishDraftPreview();
+    }, [publishDraftPreview]);
+
+    const handleTitleChange = (value: string) => {
+        setTitle(value);
+        publishDraftPreview({ title: value });
+    };
 
     const toggleTag = (type: CalendarEntryType) => {
         setTagError(null);
@@ -85,19 +180,49 @@ export default function EntryForm({
             const next = new Set(prev);
             if (next.has(type)) next.delete(type);
             else next.add(type);
+            publishDraftPreview({ tags: [...next] });
             return next;
         });
     };
 
     const handleAddTag = async (label: string) => {
         const id = await Promise.resolve(onAddTag(label));
-        if (id) setSelectedTags((prev) => new Set([...prev, id]));
+        if (id) {
+            setSelectedTags((prev) => {
+                const next = new Set([...prev, id]);
+                publishDraftPreview({ tags: [...next] });
+                return next;
+            });
+        }
         return id;
     };
 
     const handleStartDateChange = (value: string) => {
         setStartDate(value);
+        const nextEndDate = endDate < value ? value : endDate;
         if (endDate < value) setEndDate(value);
+        publishDraftPreview({ startDate: value, endDate: nextEndDate });
+    };
+
+    const handleEndDateChange = (value: string) => {
+        const nextEndDate = value < startDate ? startDate : value;
+        setEndDate(nextEndDate);
+        publishDraftPreview({ endDate: nextEndDate });
+    };
+
+    const handleAllDayChange = (value: boolean) => {
+        setAllDay(value);
+        publishDraftPreview({ allDay: value });
+    };
+
+    const handleStartTimeChange = (value: string) => {
+        setStartTime(value);
+        publishDraftPreview({ startTime: value });
+    };
+
+    const handleEndTimeChange = (value: string) => {
+        setEndTime(value);
+        publishDraftPreview({ endTime: value });
     };
 
     const currentParticipantEmails = () => {
@@ -133,15 +258,20 @@ export default function EntryForm({
         if (defaultTagId) setSelectedTags(new Set([defaultTagId]));
         else setSelectedTags(new Set());
         setVisibility("PRIVATE");
-        setStartDate(initialDateKey);
-        setEndDate(initialDateKey);
-        setAllDay(true);
-        setStartTime("09:00");
-        setEndTime("10:00");
+        setStartDate(createDefaults?.startDate ?? initialDateKey);
+        setEndDate(
+            createDefaults?.endDate ?? createDefaults?.startDate ?? initialDateKey,
+        );
+        setAllDay(createDefaults?.allDay ?? true);
+        setStartTime(createDefaults?.startTime ?? "09:00");
+        setEndTime(createDefaults?.endTime ?? "10:00");
         setParticipantEmails([]);
         setParticipantDraft("");
         setFormError(null);
         setTagError(null);
+        setShowNote(false);
+        setShowParticipants(false);
+        setShowLink(false);
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -199,40 +329,34 @@ export default function EntryForm({
                 <span className="text-muted-foreground">일정 이름</span>
                 <input
                     value={title}
-                    onChange={(e) => setTitle(e.target.value)}
+                    onChange={(e) => handleTitleChange(e.target.value)}
                     placeholder="제목"
                     className={cn(inputClass, "px-3 py-2")}
                 />
             </label>
 
             <div className="space-y-2">
-                <div className="grid grid-cols-2 gap-2">
-                    <label className="space-y-1 text-xs">
-                        <span className="text-muted-foreground">시작일</span>
-                        <input
-                            type="date"
-                            value={startDate}
-                            onChange={(e) => handleStartDateChange(e.target.value)}
-                            className={cn(inputClass, "px-2 py-1.5")}
-                        />
-                    </label>
-                    <label className="space-y-1 text-xs">
-                        <span className="text-muted-foreground">종료일</span>
-                        <input
-                            type="date"
-                            value={endDate}
-                            min={startDate}
-                            onChange={(e) => setEndDate(e.target.value)}
-                            className={cn(inputClass, "px-2 py-1.5")}
-                        />
-                    </label>
+                <div className="grid grid-cols-1 gap-2">
+                    <DatePickerField
+                        label="시작일"
+                        value={startDate}
+                        mutedDate={endDate}
+                        onChange={handleStartDateChange}
+                    />
+                    <DatePickerField
+                        label="종료일"
+                        value={endDate}
+                        minDate={startDate}
+                        mutedDate={startDate}
+                        onChange={handleEndDateChange}
+                    />
                 </div>
 
                 <label className="flex items-center gap-2 text-sm">
                     <input
                         type="checkbox"
                         checked={allDay}
-                        onChange={(e) => setAllDay(e.target.checked)}
+                        onChange={(e) => handleAllDayChange(e.target.checked)}
                     />
                     종일 (시간 없음 · 여러 날 연속)
                 </label>
@@ -244,7 +368,7 @@ export default function EntryForm({
                             <input
                                 type="time"
                                 value={startTime}
-                                onChange={(e) => setStartTime(e.target.value)}
+                                onChange={(e) => handleStartTimeChange(e.target.value)}
                                 required
                                 className={cn(inputClass, "px-2 py-1.5")}
                             />
@@ -254,7 +378,7 @@ export default function EntryForm({
                             <input
                                 type="time"
                                 value={endTime}
-                                onChange={(e) => setEndTime(e.target.value)}
+                                onChange={(e) => handleEndTimeChange(e.target.value)}
                                 required
                                 className={cn(inputClass, "px-2 py-1.5")}
                             />
@@ -276,34 +400,76 @@ export default function EntryForm({
             />
             {tagError && <p className="text-sm text-destructive">{tagError}</p>}
 
-            <label className="block space-y-1 text-xs">
-                <span className="text-muted-foreground">메모 (선택)</span>
-                <input
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    maxLength={80}
-                    placeholder="한 줄 메모"
-                    className={cn(inputClass, "px-3 py-2")}
-                />
-            </label>
+            <div className="flex flex-wrap gap-1.5">
+                <button
+                    type="button"
+                    onClick={() => setShowNote((v) => !v)}
+                    className={cn(
+                        "inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground transition hover:bg-muted/50 hover:text-foreground",
+                        showNote && "bg-muted text-foreground",
+                    )}
+                >
+                    <MessageSquareText className="h-3.5 w-3.5" />
+                    메모
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setShowParticipants((v) => !v)}
+                    className={cn(
+                        "inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground transition hover:bg-muted/50 hover:text-foreground",
+                        showParticipants && "bg-muted text-foreground",
+                    )}
+                >
+                    <UserPlus className="h-3.5 w-3.5" />
+                    참여자
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setShowLink((v) => !v)}
+                    className={cn(
+                        "inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground transition hover:bg-muted/50 hover:text-foreground",
+                        showLink && "bg-muted text-foreground",
+                    )}
+                >
+                    <Link2 className="h-3.5 w-3.5" />
+                    링크
+                </button>
+            </div>
 
-            <ParticipantEmailInput
-                emails={participantEmails}
-                draft={participantDraft}
-                onEmailsChange={setParticipantEmails}
-                onDraftChange={setParticipantDraft}
-            />
+            {showNote && (
+                <label className="block space-y-1 text-xs">
+                    <span className="text-muted-foreground">메모</span>
+                    <input
+                        value={note}
+                        onChange={(e) => setNote(e.target.value)}
+                        maxLength={80}
+                        placeholder="한 줄 메모"
+                        className={cn(inputClass, "px-3 py-2")}
+                    />
+                </label>
+            )}
 
-            <label className="block space-y-1 text-xs">
-                <span className="text-muted-foreground">링크 (선택)</span>
-                <input
-                    type="url"
-                    value={link}
-                    onChange={(e) => setLink(e.target.value)}
-                    placeholder="https://example.com"
-                    className={cn(inputClass, "px-3 py-2")}
+            {showParticipants && (
+                <ParticipantEmailInput
+                    emails={participantEmails}
+                    draft={participantDraft}
+                    onEmailsChange={setParticipantEmails}
+                    onDraftChange={setParticipantDraft}
                 />
-            </label>
+            )}
+
+            {showLink && (
+                <label className="block space-y-1 text-xs">
+                    <span className="text-muted-foreground">링크</span>
+                    <input
+                        type="url"
+                        value={link}
+                        onChange={(e) => setLink(e.target.value)}
+                        placeholder="https://example.com"
+                        className={cn(inputClass, "px-3 py-2")}
+                    />
+                </label>
+            )}
 
             <label className="block space-y-1 text-xs">
                 <span className="text-muted-foreground">일정 공개 범위</span>

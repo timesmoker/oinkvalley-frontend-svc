@@ -21,7 +21,9 @@ type CalendarLeftSidebarProps = {
     onDaySelect: (date: Date) => void;
     allTags: CalendarTagDef[];
     typeFilter: ReadonlySet<CalendarEntryType>;
+    excludedTypeFilter: ReadonlySet<CalendarEntryType>;
     onToggleTypeFilter: (type: CalendarEntryType) => void;
+    onToggleExcludedTypeFilter: (type: CalendarEntryType) => void;
     onSelectAllTypes: () => void;
     onAddTag: CalendarAddTagFn;
     status?: ReactNode;
@@ -37,7 +39,9 @@ export default function CalendarLeftSidebar({
     onDaySelect,
     allTags,
     typeFilter,
+    excludedTypeFilter,
     onToggleTypeFilter,
+    onToggleExcludedTypeFilter,
     onSelectAllTypes,
     onAddTag,
     status,
@@ -58,8 +62,10 @@ export default function CalendarLeftSidebar({
                 <EntryTypeFilter
                     layout="sidebar"
                     allTags={allTags}
-                    active={typeFilter}
-                    onToggle={onToggleTypeFilter}
+                    included={typeFilter}
+                    excluded={excludedTypeFilter}
+                    onToggleInclude={onToggleTypeFilter}
+                    onToggleExclude={onToggleExcludedTypeFilter}
                     onSelectAll={onSelectAllTypes}
                     onAddTag={onAddTag}
                 />

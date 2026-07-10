@@ -7,6 +7,27 @@ import { cn } from "@/lib/utils";
 /** 말줄임(...) 없이 박스 밖만 잘림 */
 export const clipText = "overflow-hidden whitespace-nowrap";
 
+/** 드래그 생성: 칸 hit-test용 */
+export const CALENDAR_DAY_KEY_ATTR = "data-calendar-day-key";
+/** 기존 일정 칩/막대 — 드래그 중 pointer-events 끄기용 */
+export const CALENDAR_ENTRY_ATTR = "data-calendar-entry";
+
+/**
+ * 포인터 아래 날짜 칸 dayKey.
+ * 일정 칩 위여도 부모/아래 칸의 dayKey를 찾는다. 캘린더 밖이면 null.
+ */
+export function calendarDayKeyFromPoint(clientX: number, clientY: number): string | null {
+    const stack = document.elementsFromPoint(clientX, clientY);
+    for (const el of stack) {
+        if (!(el instanceof Element)) continue;
+        const dayEl = el.closest(`[${CALENDAR_DAY_KEY_ATTR}]`);
+        if (dayEl instanceof HTMLElement) {
+            return dayEl.getAttribute(CALENDAR_DAY_KEY_ATTR);
+        }
+    }
+    return null;
+}
+
 export function normalizeEntryTags(
     tags: CalendarEntryType[],
     knownIds?: ReadonlySet<CalendarEntryType>,
@@ -92,6 +113,16 @@ export function entryMatchesTagFilter(
 ) {
     if (active.size === 0) return false;
     return entry.tags.some((t) => active.has(t));
+}
+
+export function entryPassesTagFilter(
+    entry: CalendarEntry,
+    include: ReadonlySet<CalendarEntryType>,
+    exclude: ReadonlySet<CalendarEntryType>,
+) {
+    if (entry.tags.some((t) => exclude.has(t))) return false;
+    if (include.size === 0) return false;
+    return entryMatchesTagFilter(entry, include);
 }
 
 export function filterEntriesByTags(
