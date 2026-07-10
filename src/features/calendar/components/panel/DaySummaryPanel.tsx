@@ -8,7 +8,7 @@ import type {
     CalendarEntryDraftPreview,
 } from "@/features/calendar/types/calendar";
 import type { CreateCalendarEntryRequest } from "@/features/calendar/api/calendarTypes";
-import { allTagIds, type CalendarTagDef } from "@/features/calendar/tags/tagRegistry";
+import { allTagIds, type CalendarTagDef } from "@/features/calendar/lib/tagRegistry";
 import {
     entryBlockClasses,
     formatDayTitle,

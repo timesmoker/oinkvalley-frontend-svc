@@ -6,7 +6,7 @@ import type {
     CalendarEntryType,
     CalendarViewMode,
 } from "@/features/calendar/types/calendar";
-import type { CalendarTagDef } from "@/features/calendar/tags/tagRegistry";
+import type { CalendarTagDef } from "@/features/calendar/lib/tagRegistry";
 import EntryTypeFilter from "@/features/calendar/components/tags/EntryTypeFilter";
 import SidebarMiniCalendar from "@/features/calendar/components/sidebar/SidebarMiniCalendar";
 import { cn } from "@/lib/utils";

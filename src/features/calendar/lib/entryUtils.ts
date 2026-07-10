@@ -1,6 +1,6 @@
 import type { CalendarEntry, CalendarEntryType, CalendarViewMode } from "@/features/calendar/types/calendar";
 import { authorLabel } from "@/features/profile/api/profileSvc";
-import { getTagStyle } from "@/features/calendar/tags/tagRegistry";
+import { getTagStyle } from "@/features/calendar/lib/tagRegistry";
 import type { ClassValue } from "clsx";
 import { cn } from "@/lib/utils";
 
@@ -494,4 +494,18 @@ export function formatDayWeekday(date: Date) {
 export function timeToMinutes(time: string) {
     const [h, m] = time.split(":").map(Number);
     return h * 60 + m;
+}
+
+/** 잘못된 시간이면 null */
+export function parseTimeToMinutes(value?: string): number | null {
+    if (!value) return null;
+    const [hour, minute] = value.split(":").map(Number);
+    if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
+    return hour * 60 + minute;
+}
+
+/** dateKey → Date (로컬) */
+export function dateFromKey(key: string) {
+    const { year, month, day } = parseDateKey(key);
+    return new Date(year, month, day);
 }

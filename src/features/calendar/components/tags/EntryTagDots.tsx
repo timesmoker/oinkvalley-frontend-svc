@@ -1,5 +1,5 @@
 import type { CalendarEntryType } from "@/features/calendar/types/calendar";
-import { getTagStyle } from "@/features/calendar/tags/tagRegistry";
+import { getTagStyle } from "@/features/calendar/lib/tagRegistry";
 import { cn } from "@/lib/utils";
 
 type EntryTagDotsProps = {

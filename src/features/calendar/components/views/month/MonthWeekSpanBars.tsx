@@ -19,7 +19,7 @@ import CreatePreviewResizable, {
 import {
     CREATE_PREVIEW_ENTRY_ID,
     isCreatePreviewEntry,
-} from "@/features/calendar/components/views/month/monthPreview";
+} from "@/features/calendar/lib/previewEntries";
 import { DATE_HEADER_PT } from "@/features/calendar/components/views/month/MonthDayCell";
 import { cn } from "@/lib/utils";
 

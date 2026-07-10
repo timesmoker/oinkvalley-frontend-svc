@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { Eye, EyeOff, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import type { CalendarAddTagFn } from "@/features/calendar/types/calendar";
-import type { CalendarTagDef } from "@/features/calendar/tags/tagRegistry";
-import { getTagStyle } from "@/features/calendar/tags/tagRegistry";
+import type { CalendarTagDef } from "@/features/calendar/lib/tagRegistry";
+import { getTagStyle } from "@/features/calendar/lib/tagRegistry";
 import type {
     TagActionHandlers,
     TagFilter,

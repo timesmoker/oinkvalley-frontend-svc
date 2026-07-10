@@ -15,8 +15,9 @@ export function snapTimelineMinutes(
 }
 
 export function minutesToTimeLabel(totalMinutes: number) {
-    const hour = Math.floor(totalMinutes / 60);
-    const minute = totalMinutes % 60;
+    const clamped = Math.max(0, Math.min(23 * 60 + 59, totalMinutes));
+    const hour = Math.floor(clamped / 60);
+    const minute = clamped % 60;
     return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 }
 
