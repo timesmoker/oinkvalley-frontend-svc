@@ -1,4 +1,4 @@
-import type { CalendarTagDef } from "@/features/calendar/tags/tagRegistry";
+import type { CalendarTagDef } from "@/features/calendar/lib/tagRegistry";
 import type { TagFilter } from "@/features/calendar/components/settings/calendarSettingsTypes";
 
 export const TAG_FILTERS: { id: TagFilter; label: string }[] = [

@@ -1,7 +1,10 @@
 import type { CalendarEntry } from "@/features/calendar/types/calendar";
 import type { MonthGridCell } from "@/features/calendar/lib/monthGrid";
 import { monthGridCellKey } from "@/features/calendar/lib/monthGrid";
-import { entryBlockStyle, entryOverlapsDay, isMultiDayEntry } from "@/features/calendar/lib/entryUtils";
+import { entryOverlapsDay, isMultiDayEntry } from "@/features/calendar/lib/entryUtils";
+import {
+    isCreatePreviewEntry,
+} from "@/features/calendar/lib/previewEntries";
 
 export const MONTH_CELL_MAX_CHIPS = 2;
 
@@ -43,15 +46,8 @@ export function dayKeyFromWeekSpanBarClick(
     return weekKeys[bar.colStart + colOffset] ?? fallback;
 }
 
-export const CREATE_PREVIEW_ENTRY_ID = "__calendar-create-preview__";
-
 export function isMonthSpanBarEntry(entry: CalendarEntry) {
-    if (
-        entry.id === CREATE_PREVIEW_ENTRY_ID ||
-        entry.id === "__calendar-drag-preview__"
-    ) {
-        return true;
-    }
+    if (isCreatePreviewEntry(entry)) return true;
     return entry.allDay && isMultiDayEntry(entry);
 }
 
@@ -97,10 +93,7 @@ export function layoutWeekSpanBars(
 
     raw.sort((a, b) => {
         const previewRank = (entry: CalendarEntry) =>
-            entry.id === CREATE_PREVIEW_ENTRY_ID ||
-            entry.id === "__calendar-drag-preview__"
-                ? 0
-                : 1;
+            isCreatePreviewEntry(entry) ? 0 : 1;
         return (
             previewRank(a.entry) - previewRank(b.entry) ||
             a.colStart - b.colStart ||
@@ -132,10 +125,7 @@ export function singleDayEntriesForCell(
     dayKey: string,
 ): CalendarEntry[] {
     return entries.filter((e) => {
-        if (
-            e.id === CREATE_PREVIEW_ENTRY_ID ||
-            e.id === "__calendar-drag-preview__"
-        ) {
+        if (isCreatePreviewEntry(e)) {
             return false;
         }
         if (e.startDate === e.endDate && e.startDate === dayKey) return true;
@@ -171,5 +161,3 @@ export function columnSpanAreaHeight(bars: WeekSpanBar[], col: number): number {
     const maxLane = Math.max(...covering.map((b) => b.lane));
     return spanAreaHeight(maxLane + 1) + MONTH_CHIP_GAP;
 }
-
-export { entryBlockStyle };

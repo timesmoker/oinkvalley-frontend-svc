@@ -15,7 +15,7 @@ import {
     normalizeEntryTags,
     parseParticipantEmailsInput,
 } from "@/features/calendar/lib/entryUtils";
-import type { CalendarTagDef } from "@/features/calendar/tags/tagRegistry";
+import type { CalendarTagDef } from "@/features/calendar/lib/tagRegistry";
 import EntryTagPicker from "@/features/calendar/components/tags/EntryTagPicker";
 import ParticipantEmailInput from "@/features/calendar/components/entry/ParticipantEmailInput";
 import DatePickerField from "@/features/calendar/components/entry/DatePickerField";

@@ -15,7 +15,7 @@ import { useAllDayDragCreate } from "@/features/calendar/hooks/useAllDayDragCrea
 import {
     CREATE_PREVIEW_ENTRY_ID,
     DRAG_PREVIEW_ENTRY_ID,
-} from "@/features/calendar/components/views/month/monthPreview";
+} from "@/features/calendar/lib/previewEntries";
 import {
     MonthAdjacentCell,
     MonthDayCell,

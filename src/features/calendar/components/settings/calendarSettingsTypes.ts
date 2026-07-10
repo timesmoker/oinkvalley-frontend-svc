@@ -1,4 +1,4 @@
-import type { CalendarTagDef } from "@/features/calendar/tags/tagRegistry";
+import type { CalendarTagDef } from "@/features/calendar/lib/tagRegistry";
 
 export type SettingsTab = "mine" | "discover";
 export type TagFilter = "all" | "public" | "private" | "hidden" | "followed";

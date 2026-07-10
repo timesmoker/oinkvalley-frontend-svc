@@ -1,8 +1,8 @@
 "use client";
 
 import type { CalendarAddTagFn, CalendarEntryType } from "@/features/calendar/types/calendar";
-import type { CalendarTagDef } from "@/features/calendar/tags/tagRegistry";
-import { allTagIds, getTagStyle } from "@/features/calendar/tags/tagRegistry";
+import type { CalendarTagDef } from "@/features/calendar/lib/tagRegistry";
+import { allTagIds, getTagStyle } from "@/features/calendar/lib/tagRegistry";
 import AddTagControl from "@/features/calendar/components/tags/AddTagControl";
 import { cn } from "@/lib/utils";
 

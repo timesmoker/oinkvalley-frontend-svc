@@ -1,6 +1,6 @@
 import type { CalendarEntryType } from "@/features/calendar/types/calendar";
-import type { CalendarTagDef } from "@/features/calendar/tags/tagRegistry";
-import { allTagIds, getTagLabel, getTagStyle } from "@/features/calendar/tags/tagRegistry";
+import type { CalendarTagDef } from "@/features/calendar/lib/tagRegistry";
+import { allTagIds, getTagLabel, getTagStyle } from "@/features/calendar/lib/tagRegistry";
 import { cn } from "@/lib/utils";
 
 type EntryTagPillsProps = {

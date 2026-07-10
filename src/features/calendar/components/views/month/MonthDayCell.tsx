@@ -15,7 +15,7 @@ import {
 import EntryTagDots from "@/features/calendar/components/tags/EntryTagDots";
 import { CreatePreviewEdgeShades } from "@/features/calendar/components/entry/CreatePreviewResizable";
 import MonthOverflowDots from "@/features/calendar/components/views/MonthOverflowDots";
-import { isCreatePreviewEntry } from "@/features/calendar/components/views/month/monthPreview";
+import { isCreatePreviewEntry } from "@/features/calendar/lib/previewEntries";
 import { cn } from "@/lib/utils";
 
 /** 칸 상단 날짜 헤더가 차지하는 높이(px) */

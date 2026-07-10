@@ -18,7 +18,7 @@ import {
     spanLaneCount,
     type WeekSpanBar,
 } from "@/features/calendar/lib/monthLayout";
-import { prioritizeCreatePreview } from "@/features/calendar/components/views/month/monthPreview";
+import { prioritizeCreatePreview } from "@/features/calendar/lib/previewEntries";
 import {
     DATE_HEADER_PT,
     type MonthDayCellData,

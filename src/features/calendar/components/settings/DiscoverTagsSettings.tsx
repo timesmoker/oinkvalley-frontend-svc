@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus, Search, Tag } from "lucide-react";
-import type { CalendarTagDef } from "@/features/calendar/tags/tagRegistry";
+import type { CalendarTagDef } from "@/features/calendar/lib/tagRegistry";
 
 type DiscoverTagsSettingsProps = {
     ownerEmailInput: string;

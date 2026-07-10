@@ -12,10 +12,12 @@ import {
     CALENDAR_DAY_KEY_ATTR,
     CALENDAR_ENTRY_ATTR,
     calendarDayKeyFromPoint,
+    dateFromKey,
     dateKey,
     entriesForDay,
     entryBlockClasses,
     clipText,
+    parseTimeToMinutes,
     startOfRollingWeek,
     weekTimedBlockForDay,
 } from "@/features/calendar/lib/entryUtils";
@@ -34,18 +36,12 @@ import { useAllDayPreviewResize } from "@/features/calendar/hooks/useAllDayPrevi
 import { useAllDayPreviewMove } from "@/features/calendar/hooks/useAllDayPreviewMove";
 import { useTimedPreviewResize } from "@/features/calendar/hooks/useTimedPreviewResize";
 import { useTimedPreviewMove } from "@/features/calendar/hooks/useTimedPreviewMove";
+import { minutesToTimeLabel } from "@/features/calendar/lib/createPreviewResizeUtils";
 import { cn } from "@/lib/utils";
 
 const ALL_DAY_ROW = 56;
 const MINUTES_PER_HOUR = 60;
 const CLICK_TIME_STEP_MINUTES = 30;
-
-function timeLabel(totalMinutes: number) {
-    const clamped = Math.max(0, Math.min(23 * 60 + 59, totalMinutes));
-    const hour = Math.floor(clamped / 60);
-    const minute = clamped % 60;
-    return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
-}
 
 function minuteFromPointer(event: PointerEvent<HTMLDivElement>) {
     const rect = event.currentTarget.getBoundingClientRect();
@@ -66,29 +62,17 @@ function timedDefaultsFromMinutes(startMinutes: number, endMinutes?: number): Ca
         const hourEnd = Math.min(hourStart + MINUTES_PER_HOUR, 23 * 60 + 59);
         return {
             allDay: false,
-            startTime: timeLabel(hourStart),
-            endTime: timeLabel(hourEnd),
+            startTime: minutesToTimeLabel(hourStart),
+            endTime: minutesToTimeLabel(hourEnd),
         };
     }
     const start = Math.min(startMinutes, endMinutes);
     const end = Math.max(startMinutes, endMinutes);
     return {
         allDay: false,
-        startTime: timeLabel(start),
-        endTime: timeLabel(end),
+        startTime: minutesToTimeLabel(start),
+        endTime: minutesToTimeLabel(end),
     };
-}
-
-function dateFromKey(key: string) {
-    const [year, month, day] = key.split("-").map(Number);
-    return new Date(year, month - 1, day);
-}
-
-function minutesFromTime(value?: string) {
-    if (!value) return null;
-    const [hour, minute] = value.split(":").map(Number);
-    if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
-    return hour * 60 + minute;
 }
 
 type WeekViewProps = {
@@ -342,8 +326,8 @@ export default function WeekView({
             key >= createPreview.startDate &&
             key <= (createPreview.endDate ?? createPreview.startDate)
         ) {
-            start = minutesFromTime(createPreview.startTime);
-            end = minutesFromTime(createPreview.endTime);
+            start = parseTimeToMinutes(createPreview.startTime);
+            end = parseTimeToMinutes(createPreview.endTime);
         }
 
         if (start == null || end == null) return null;

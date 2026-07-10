@@ -13,6 +13,7 @@ import {
     entriesForDay,
     entryBlockClasses,
     formatEntrySchedule,
+    parseTimeToMinutes,
     plannerHourList,
     weekTimedBlockForDay,
     DAY_VIEW_PLANNER_ROW_COUNT,
@@ -31,7 +32,10 @@ import { usePlannerPreviewResize } from "@/features/calendar/hooks/usePlannerPre
 import { usePlannerPreviewMove } from "@/features/calendar/hooks/usePlannerPreviewMove";
 import { useTimedPreviewResize } from "@/features/calendar/hooks/useTimedPreviewResize";
 import { useTimedPreviewMove } from "@/features/calendar/hooks/useTimedPreviewMove";
-import { PLANNER_PREVIEW_TIME_STEP } from "@/features/calendar/lib/createPreviewResizeUtils";
+import {
+    minutesToTimeLabel,
+    PLANNER_PREVIEW_TIME_STEP,
+} from "@/features/calendar/lib/createPreviewResizeUtils";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_HOUR_START = 6;
@@ -46,13 +50,6 @@ const BOUNDARY_MINUTES = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55] as const;
 /** 짝수 시간 행 배경 */
 const EVEN_HOUR_ROW_CLASS = "bg-muted/85";
 
-function timeLabel(totalMinutes: number) {
-    const clamped = Math.max(0, Math.min(23 * 60 + 59, totalMinutes));
-    const hour = Math.floor(clamped / 60);
-    const minute = clamped % 60;
-    return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
-}
-
 function createTimedDefaultsFromTotal(
     startMinutes: number,
     endMinutes: number,
@@ -65,8 +62,8 @@ function createTimedDefaultsFromTotal(
     const end = Math.max(startMinutes, normalizedEnd);
     return {
         allDay: false,
-        startTime: timeLabel(start),
-        endTime: timeLabel(end),
+        startTime: minutesToTimeLabel(start),
+        endTime: minutesToTimeLabel(end),
     };
 }
 
@@ -95,13 +92,6 @@ function rangeSegmentForHour(
     return { start, end };
 }
 
-function minutesFromTime(value?: string) {
-    if (!value) return null;
-    const [hour, minute] = value.split(":").map(Number);
-    if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
-    return hour * 60 + minute;
-}
-
 function previewMinutesForDay(
     dayKey: string,
     createPreview?: CalendarEntryCreateDefaults | null,
@@ -115,8 +105,8 @@ function previewMinutesForDay(
     ) {
         return null;
     }
-    const start = minutesFromTime(createPreview.startTime);
-    const end = minutesFromTime(createPreview.endTime);
+    const start = parseTimeToMinutes(createPreview.startTime);
+    const end = parseTimeToMinutes(createPreview.endTime);
     if (start == null || end == null) return null;
     return { start: Math.min(start, end), end: Math.max(start, end) };
 }
