@@ -1,23 +1,35 @@
 // src/app/(default)/boards/[slug]/[postId]/page.tsx
 
-import { notFound } from "next/navigation";
 import {PostDetail} from "@/features/boards/types/posts";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { getServerApiBaseUrl, getSsrUpstreamAuthFromRequest } from "@/lib/api/serverBaseUrl";
 import {
     fetchBoardMetaBySegment,
     fetchPostBySegment,
 } from "@/features/boards/api/boardSvc";
-import { handleBoardPageError } from "@/features/boards/api/handleBoardPageError";
+import {
+    handleProtectedPageError,
+    redirectForbidden,
+} from "@/lib/auth/handleProtectedPageError";
 import {
     authorLabel,
     profilesToNicknameRecord,
 } from "@/features/profile/api/profileSvc";
 import { fetchProfilesByIds } from "@/features/profile/api/profileQueries";
-import PostOwnerActions from "@/features/boards/components/PostOwnerActions";
+import PostOwnerActions from "@/features/boards/post/components/PostOwnerActions";
+import { formatPostDateTime } from "@/features/boards/lib/formatPostDate";
+import { BOARD_POST_DOCUMENT_SHELL_ID } from "@/features/boards/lib/boardPostScrollAnchor";
+import {
+    boardPostArticleColumnClassName,
+    boardPostDocumentShellClassName,
+    boardPostMetaRowClassName,
+    boardPostTitleBlockClassName,
+    boardPostTitleClassName,
+} from "@/features/boards/shared/layout/boardPostSurfaceStyles";
 
-const Viewer = dynamic(() => import('@/features/boards/components/Viewer'), { ssr: false });
-const Comments = dynamic(() => import('@/features/boards/components/Comments'), { ssr: false })
+const Viewer = dynamic(() => import('@/features/boards/viewer/components/Viewer'), { ssr: false });
+const Comments = dynamic(() => import('@/features/boards/comment/components/Comments'), { ssr: false })
 
 
 export default async function PostPage({ params }: { params: { slug: string; postId: string } }) {
@@ -28,12 +40,12 @@ export default async function PostPage({ params }: { params: { slug: string; pos
     let loaded;
     try {
         board = await fetchBoardMetaBySegment(baseUrl, params.slug, ssrAuth);
-        if (!board) return notFound();
+        if (!board) redirectForbidden();
         loaded = await fetchPostBySegment(baseUrl, params.slug, params.postId, ssrAuth);
     } catch (err) {
-        handleBoardPageError(err, `/boards/${params.slug}/${params.postId}`);
+        handleProtectedPageError(err, `/boards/${params.slug}/${params.postId}`);
     }
-    if (!loaded || loaded.boardId !== board.id) return notFound();
+    if (!loaded || loaded.boardId !== board.id) redirectForbidden();
 
     const post: PostDetail = loaded;
 
@@ -54,41 +66,31 @@ export default async function PostPage({ params }: { params: { slug: string; pos
     return (
         <div className="w-full px-0 py-6 sm:px-6 sm:max-w-[950px] sm:mx-auto">
             {/* 게시판 이름 */}
-            <h1 className="text-2xl font-bold mb-4">{board.name}</h1>
+            <h1 id="board-post-scroll-anchor" className="text-2xl font-bold mb-4">
+                <Link href={`/boards/${params.slug}`} className="hover:underline">
+                    {board.name}
+                </Link>
+            </h1>
 
-            {/* 전체 박스 */}
-            <div className="border border-gray-300 rounded-md overflow-hidden text-sm">
-                {/* 제목 줄 */}
-                <div className="border-b px-4 py-2 bg-gray-50 font-medium">
-                    제목 : {post.title}
-                </div>
-
-                {/* 작성자 + 날짜 줄 */}
-                <div className="border-b px-4 py-2 flex justify-between text-sm text-gray-700">
-                    <span>작성자 : {authorDisplay}</span>
-
-                    <span>작성시각 :{' '}
-                        {new Date(post.createdAt).toLocaleString('ko-KR', {
-                            year: 'numeric',
-                            month: '2-digit',
-                            day: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                        })}
-                    </span>
-                </div>
-
-
-                {/* 본문 내용 줄 */}
-                <div className="px-4 py-6 bg-white">
-                    <div className="prose min-h-[200px]">
-                        <Viewer
-                            content={post.content}
-                            proseminHeight="50vh"
-                        />
+            <div id={BOARD_POST_DOCUMENT_SHELL_ID} className={boardPostDocumentShellClassName}>
+                <div className={boardPostArticleColumnClassName}>
+                    <div className={boardPostTitleBlockClassName}>
+                        <h1 className={boardPostTitleClassName}>{post.title}</h1>
                     </div>
-                </div>
 
+                    <div className={boardPostMetaRowClassName}>
+                        <span>{authorDisplay}</span>
+                        <span>{formatPostDateTime(post.createdAt)}</span>
+                    </div>
+
+                    <Viewer
+                        content={post.content}
+                        postTitle={post.title}
+                        proseminHeight="50vh"
+                        showTableOfContents
+                        embeddedInArticle
+                    />
+                </div>
             </div>
             <PostOwnerActions
                 boardSlug={params.slug}

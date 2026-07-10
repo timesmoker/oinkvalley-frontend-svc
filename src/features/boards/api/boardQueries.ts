@@ -1,17 +1,29 @@
 import type { JSONContent } from "@tiptap/core";
 import type { PageResponse } from "@/types/pagination";
+import { AuthRequiredError } from "@/lib/api/authRequiredError";
 import type { SsrUpstreamAuth } from "@/lib/api/serverBaseUrl";
 import { buildSsrUpstreamFetchInit } from "@/lib/api/serverBaseUrl";
+
+export { AuthRequiredError };
 
 export type BoardResponse = {
   id: number;
   name: string;
   slug: string;
   summary: string | null;
-  isPrivate: boolean;
   isActive: boolean;
+  canWrite: boolean;
   createdAt: string;
   updatedAt: string;
+};
+
+/** GET /boards 목록 전용. canRead=false 이면 UI 에서 비공개 표시·진입 차단. */
+export type BoardListItemResponse = {
+  id: number;
+  name: string;
+  slug: string;
+  summary: string | null;
+  canRead: boolean;
 };
 
 export type PostSummaryResponse = {
@@ -46,22 +58,39 @@ export type BoardPostsBundleResponse = {
   posts: PageResponse<PostSummaryResponse>;
 };
 
-export class AuthRequiredError extends Error {
-  constructor(message = "Authentication required") {
+export type ApiErrorResponse = {
+  message: string;
+  errors?: { field: string; message: string }[];
+};
+
+export class MemberRequiredError extends Error {
+  constructor(message = "정식 회원만 열람할 수 있습니다.") {
     super(message);
-    this.name = "AuthRequiredError";
+    this.name = "MemberRequiredError";
   }
 }
 
-function parseBoardList(data: unknown): BoardResponse[] {
-  if (Array.isArray(data)) return data as BoardResponse[];
+async function readApiErrorMessage(res: Response, fallback: string): Promise<string> {
+  try {
+    const data = (await res.json()) as ApiErrorResponse;
+    if (data?.message?.trim()) {
+      return data.message.trim();
+    }
+  } catch {
+    /* 본문 없음 */
+  }
+  return fallback;
+}
+
+function parseBoardList(data: unknown): BoardListItemResponse[] {
+  if (Array.isArray(data)) return data as BoardListItemResponse[];
   if (
     data &&
     typeof data === "object" &&
     "content" in data &&
     Array.isArray((data as { content: unknown }).content)
   ) {
-    return (data as { content: BoardResponse[] }).content;
+    return (data as { content: BoardListItemResponse[] }).content;
   }
   return [];
 }
@@ -69,10 +98,13 @@ function parseBoardList(data: unknown): BoardResponse[] {
 export async function fetchBoards(
   baseUrl: string,
   auth?: SsrUpstreamAuth,
-): Promise<BoardResponse[]> {
+): Promise<BoardListItemResponse[]> {
   const res = await fetch(`${baseUrl}/boards`, buildSsrUpstreamFetchInit(auth));
   if (res.status === 401) {
-    throw new AuthRequiredError("GET /boards requires authentication");
+    throw new AuthRequiredError(await readApiErrorMessage(res, "로그인이 필요합니다."));
+  }
+  if (res.status === 403) {
+    throw new MemberRequiredError(await readApiErrorMessage(res, "정식 회원만 열람할 수 있습니다."));
   }
   if (!res.ok) {
     throw new Error(`GET /boards failed: ${res.status}`);
@@ -103,9 +135,12 @@ export async function fetchBoardPostsBundle(
   const res = await fetch(url.toString(), buildSsrUpstreamFetchInit(auth));
 
   if (res.status === 401) {
-    throw new AuthRequiredError(`GET /boards/${pathSegment} requires authentication`);
+    throw new AuthRequiredError(await readApiErrorMessage(res, "로그인이 필요합니다."));
   }
-  if (res.status === 404 || res.status === 403) {
+  if (res.status === 403) {
+    throw new MemberRequiredError(await readApiErrorMessage(res, "정식 회원만 열람할 수 있습니다."));
+  }
+  if (res.status === 404) {
     return null;
   }
   if (!res.ok) {
@@ -132,9 +167,12 @@ export async function fetchBoardMetaBySegment(
   url.searchParams.set("size", "1");
   const res = await fetch(url.toString(), buildSsrUpstreamFetchInit(auth));
   if (res.status === 401) {
-    throw new AuthRequiredError(`GET /boards/${pathSegment} requires authentication`);
+    throw new AuthRequiredError(await readApiErrorMessage(res, "로그인이 필요합니다."));
   }
-  if (res.status === 404 || res.status === 403) {
+  if (res.status === 403) {
+    throw new MemberRequiredError(await readApiErrorMessage(res, "정식 회원만 열람할 수 있습니다."));
+  }
+  if (res.status === 404) {
     return null;
   }
   if (!res.ok) {
@@ -160,9 +198,12 @@ export async function fetchBoardWriteMetaBySegment(
     buildSsrUpstreamFetchInit(auth),
   );
   if (res.status === 401) {
-    throw new AuthRequiredError(`GET /boards/${pathSegment}/write requires authentication`);
+    throw new AuthRequiredError(await readApiErrorMessage(res, "로그인이 필요합니다."));
   }
-  if (res.status === 404 || res.status === 403) {
+  if (res.status === 403) {
+    throw new MemberRequiredError(await readApiErrorMessage(res, "정식 회원만 열람할 수 있습니다."));
+  }
+  if (res.status === 404) {
     return null;
   }
   if (!res.ok) {
@@ -185,9 +226,12 @@ export async function fetchPostBySegment(
     buildSsrUpstreamFetchInit(auth),
   );
   if (res.status === 401) {
-    throw new AuthRequiredError(`GET /boards/${pathSegment}/${postId} requires authentication`);
+    throw new AuthRequiredError(await readApiErrorMessage(res, "로그인이 필요합니다."));
   }
-  if (res.status === 404 || res.status === 403) return null;
+  if (res.status === 403) {
+    throw new MemberRequiredError(await readApiErrorMessage(res, "정식 회원만 열람할 수 있습니다."));
+  }
+  if (res.status === 404) return null;
   if (!res.ok) return null;
   return res.json() as Promise<PostResponse>;
 }
