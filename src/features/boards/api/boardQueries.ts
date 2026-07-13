@@ -11,10 +11,19 @@ export type BoardResponse = {
   name: string;
   slug: string;
   summary: string | null;
-  isPrivate: boolean;
   isActive: boolean;
+  canWrite: boolean;
   createdAt: string;
   updatedAt: string;
+};
+
+/** GET /boards 목록 전용. canRead=false 이면 UI 에서 비공개 표시·진입 차단. */
+export type BoardListItemResponse = {
+  id: number;
+  name: string;
+  slug: string;
+  summary: string | null;
+  canRead: boolean;
 };
 
 export type PostSummaryResponse = {
@@ -73,15 +82,15 @@ async function readApiErrorMessage(res: Response, fallback: string): Promise<str
   return fallback;
 }
 
-function parseBoardList(data: unknown): BoardResponse[] {
-  if (Array.isArray(data)) return data as BoardResponse[];
+function parseBoardList(data: unknown): BoardListItemResponse[] {
+  if (Array.isArray(data)) return data as BoardListItemResponse[];
   if (
     data &&
     typeof data === "object" &&
     "content" in data &&
     Array.isArray((data as { content: unknown }).content)
   ) {
-    return (data as { content: BoardResponse[] }).content;
+    return (data as { content: BoardListItemResponse[] }).content;
   }
   return [];
 }
@@ -89,7 +98,7 @@ function parseBoardList(data: unknown): BoardResponse[] {
 export async function fetchBoards(
   baseUrl: string,
   auth?: SsrUpstreamAuth,
-): Promise<BoardResponse[]> {
+): Promise<BoardListItemResponse[]> {
   const res = await fetch(`${baseUrl}/boards`, buildSsrUpstreamFetchInit(auth));
   if (res.status === 401) {
     throw new AuthRequiredError(await readApiErrorMessage(res, "로그인이 필요합니다."));

@@ -1,13 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import type { BoardResponse } from "@/features/boards/api/boardSvc";
+import type { BoardListItemResponse } from "@/features/boards/api/boardSvc";
 
 export default function BoardSelector({
     initialBoards,
     fetchFailed,
 }: {
-    initialBoards: BoardResponse[];
+    initialBoards: BoardListItemResponse[];
     fetchFailed?: boolean;
 }) {
     const router = useRouter();
@@ -38,29 +38,43 @@ export default function BoardSelector({
         <div className="w-full px-0 py-6 sm:px-6 sm:max-w-[950px] sm:mx-auto">
             <h2 className="text-2xl font-bold mb-4">게시판을 선택하세요</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {initialBoards.map((board) => (
-                    <button
-                        key={board.id}
-                        type="button"
-                        onClick={() => handleSelect(board.slug)}
-                        className="rounded-2xl border border-blue-300 p-6 text-left shadow hover:shadow-lg transition duration-200"
-                    >
-                        <div className="flex items-start justify-between gap-2">
+                {initialBoards.map((board) => {
+                    const isPrivate = !board.canRead;
+
+                    if (isPrivate) {
+                        return (
+                            <div
+                                key={board.id}
+                                aria-disabled
+                                className="rounded-2xl border border-gray-200 bg-gray-50 p-6 text-left opacity-80 cursor-not-allowed"
+                            >
+                                <div className="flex items-start justify-between gap-2">
+                                    <h3 className="text-xl font-semibold text-gray-700">{board.name}</h3>
+                                    <span className="text-xs shrink-0 rounded bg-gray-200 px-2 py-0.5 text-gray-700">
+                                        비공개
+                                    </span>
+                                </div>
+                            </div>
+                        );
+                    }
+
+                    return (
+                        <button
+                            key={board.id}
+                            type="button"
+                            onClick={() => handleSelect(board.slug)}
+                            className="rounded-2xl border border-blue-300 p-6 text-left shadow hover:shadow-lg transition duration-200"
+                        >
                             <h3 className="text-xl font-semibold">{board.name}</h3>
-                            {board.isPrivate ? (
-                                <span className="text-xs shrink-0 rounded bg-gray-200 px-2 py-0.5 text-gray-700">
-                                    비공개
-                                </span>
-                            ) : null}
-                        </div>
-                        {board.summary ? (
-                            <p className="mt-2 text-sm text-gray-600 line-clamp-3">{board.summary}</p>
-                        ) : (
-                            <p className="mt-2 text-sm text-gray-500">/{board.slug}</p>
-                        )}
-                        <p className="mt-2 text-xs text-gray-400">슬러그: {board.slug}</p>
-                    </button>
-                ))}
+                            {board.summary ? (
+                                <p className="mt-2 text-sm text-gray-600 line-clamp-3">{board.summary}</p>
+                            ) : (
+                                <p className="mt-2 text-sm text-gray-500">/{board.slug}</p>
+                            )}
+                            <p className="mt-2 text-xs text-gray-400">슬러그: {board.slug}</p>
+                        </button>
+                    );
+                })}
             </div>
         </div>
     );

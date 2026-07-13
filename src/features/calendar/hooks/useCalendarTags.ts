@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
-import type { CalendarTagDef } from "@/features/calendar/tags/tagRegistry";
-import { slugifyTagLabel } from "@/features/calendar/tags/tagRegistry";
+import type { CalendarTagDef } from "@/features/calendar/lib/tagRegistry";
+import { slugifyTagLabel } from "@/features/calendar/lib/tagRegistry";
 import {
     createCalendarTag,
     deleteCalendarTag,

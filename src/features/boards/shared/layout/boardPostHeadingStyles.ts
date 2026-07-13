@@ -1,11 +1,11 @@
 /** 본문 heading — 위 여백 없음, 아래만 level별 (간격은 앞 블록 marginEnd로) */
 export const boardHeadingLevelSpacing = {
-    1: { lineHeight: "1.3em", marginBlockEnd: "0.85em" },
-    2: { lineHeight: "1.32em", marginBlockEnd: "0.725em" },
-    3: { lineHeight: "1.35em", marginBlockEnd: "0.65em" },
-    4: { lineHeight: "1.35em", marginBlockEnd: "0.4375em" },
-    5: { lineHeight: "1.4em", marginBlockEnd: "0.375em" },
-    6: { lineHeight: "1.4em", marginBlockEnd: "0.3125em" },
+    1: { fontSize: "2rem", lineHeight: "1.3em", marginBlockEnd: "0.85em" },
+    2: { fontSize: "1.5rem", lineHeight: "1.32em", marginBlockEnd: "0.725em" },
+    3: { fontSize: "1.25rem", lineHeight: "1.35em", marginBlockEnd: "0.65em" },
+    4: { fontSize: "1.125rem", lineHeight: "1.35em", marginBlockEnd: "0.4375em" },
+    5: { fontSize: "1rem", lineHeight: "1.4em", marginBlockEnd: "0.375em" },
+    6: { fontSize: "0.875rem", lineHeight: "1.4em", marginBlockEnd: "0.3125em" },
 } as const;
 
 export const BOARD_POST_HEADING_CLASS = "board-post-heading";

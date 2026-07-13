@@ -76,7 +76,6 @@ export function buildBoardExtensions({
   placeholder,
   scope = "post",
   mode = "edit",
-  onTableOfContentsUpdate,
 }: UseExtensionsOptions = {}): EditorOptions["extensions"] {
   const tocHeadingIds = new Set<string>();
   const isPost = scope === "post";
@@ -88,7 +87,6 @@ export function buildBoardExtensions({
     isPost,
     isView,
     tocHeadingIds,
-    onTableOfContentsUpdate,
   });
 
   return [

@@ -1,15 +1,17 @@
 "use client";
 
 import type { CalendarAddTagFn, CalendarEntryType } from "@/features/calendar/types/calendar";
-import type { CalendarTagDef } from "@/features/calendar/tags/tagRegistry";
-import { allTagIds, getTagStyle } from "@/features/calendar/tags/tagRegistry";
+import type { CalendarTagDef } from "@/features/calendar/lib/tagRegistry";
+import { allTagIds, getTagStyle } from "@/features/calendar/lib/tagRegistry";
 import AddTagControl from "@/features/calendar/components/tags/AddTagControl";
 import { cn } from "@/lib/utils";
 
 type EntryTypeFilterProps = {
     allTags: CalendarTagDef[];
-    active: ReadonlySet<CalendarEntryType>;
-    onToggle: (type: CalendarEntryType) => void;
+    included: ReadonlySet<CalendarEntryType>;
+    excluded: ReadonlySet<CalendarEntryType>;
+    onToggleInclude: (type: CalendarEntryType) => void;
+    onToggleExclude: (type: CalendarEntryType) => void;
     onSelectAll: () => void;
     onAddTag: CalendarAddTagFn;
     layout?: "inline" | "sidebar";
@@ -17,13 +19,15 @@ type EntryTypeFilterProps = {
 
 export default function EntryTypeFilter({
     allTags,
-    active,
-    onToggle,
+    included,
+    excluded,
+    onToggleInclude,
+    onToggleExclude,
     onSelectAll,
     onAddTag,
     layout = "inline",
 }: EntryTypeFilterProps) {
-    const allSelected = active.size === allTags.length;
+    const allSelected = included.size === allTags.length && excluded.size === 0;
     const orderedTagIds = allTagIds(allTags);
 
     if (layout === "sidebar") {
@@ -45,27 +49,56 @@ export default function EntryTypeFilter({
                 </div>
                 <ul className="flex flex-col">
                     {allTags.map((tag) => {
-                        const on = active.has(tag.id);
+                        const isIncluded = included.has(tag.id);
+                        const isExcluded = excluded.has(tag.id);
                         const style = getTagStyle(tag.id, orderedTagIds);
                         return (
                             <li key={tag.id}>
-                                <label
+                                <div
                                     className={cn(
-                                        "flex cursor-pointer items-center gap-2 rounded-md px-2 py-1 text-[13px] transition hover:bg-muted/50",
-                                        !on && "opacity-70",
+                                        "flex items-center gap-2 rounded-md px-2 py-1 text-[13px] transition hover:bg-muted/50",
+                                        !isIncluded && !isExcluded && "opacity-70",
                                     )}
                                 >
-                                    <input
-                                        type="checkbox"
-                                        checked={on}
-                                        onChange={() => onToggle(tag.id)}
-                                        className="h-3 w-3 shrink-0 rounded border-border accent-primary"
-                                    />
                                     <span
                                         className={cn("h-2.5 w-2.5 shrink-0 rounded-sm", style.dot)}
                                     />
-                                    <span className="truncate text-foreground">{tag.label}</span>
-                                </label>
+                                    <span className="min-w-0 flex-1 truncate text-foreground">
+                                        {tag.label}
+                                    </span>
+                                    <div className="flex shrink-0 rounded border border-border bg-background p-0.5">
+                                        <button
+                                            type="button"
+                                            onClick={() => onToggleInclude(tag.id)}
+                                            aria-pressed={isIncluded}
+                                            aria-label={`${tag.label} 포함`}
+                                            title="포함"
+                                            className={cn(
+                                                "h-6 w-6 rounded border text-xs font-semibold transition",
+                                                isIncluded
+                                                    ? "border-sky-700 bg-sky-600 text-white shadow-sm"
+                                                    : "border-transparent text-muted-foreground hover:bg-muted",
+                                            )}
+                                        >
+                                            +
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => onToggleExclude(tag.id)}
+                                            aria-pressed={isExcluded}
+                                            aria-label={`${tag.label} 제외`}
+                                            title="제외"
+                                            className={cn(
+                                                "h-6 w-6 rounded border text-xs font-semibold transition",
+                                                isExcluded
+                                                    ? "border-rose-700 bg-rose-600 text-white shadow-sm"
+                                                    : "border-transparent text-muted-foreground hover:bg-muted",
+                                            )}
+                                        >
+                                            -
+                                        </button>
+                                    </div>
+                                </div>
                             </li>
                         );
                     })}
@@ -83,23 +116,49 @@ export default function EntryTypeFilter({
                 표시할 태그
             </span>
             {allTags.map((tag) => {
-                const on = active.has(tag.id);
+                const isIncluded = included.has(tag.id);
+                const isExcluded = excluded.has(tag.id);
                 const style = getTagStyle(tag.id, orderedTagIds);
                 return (
-                    <button
+                    <div
                         key={tag.id}
-                        type="button"
-                        onClick={() => onToggle(tag.id)}
-                        aria-pressed={on}
                         className={cn(
-                            "rounded-full border px-2 py-0.5 text-[11px] font-medium transition sm:text-xs",
-                            on
-                                ? cn(style.bg, style.border, style.text)
-                                : "border-border bg-background text-muted-foreground opacity-60",
+                            "flex items-center overflow-hidden rounded-full border text-[11px] font-medium transition sm:text-xs",
+                            isIncluded
+                                ? "border-sky-700 bg-sky-600 text-white shadow-sm"
+                                : isExcluded
+                                  ? "border-rose-700 bg-rose-600 text-white shadow-sm"
+                                  : "border-border bg-background text-muted-foreground opacity-70",
                         )}
                     >
-                        {tag.label}
-                    </button>
+                        <span className="max-w-24 truncate px-2 py-0.5">{tag.label}</span>
+                        <button
+                            type="button"
+                            onClick={() => onToggleInclude(tag.id)}
+                            aria-pressed={isIncluded}
+                            aria-label={`${tag.label} 포함`}
+                            title="포함"
+                            className={cn(
+                                "border-l border-current/20 px-1.5 py-0.5 font-semibold hover:bg-black/10 dark:hover:bg-white/15",
+                                isIncluded && "bg-black/15 dark:bg-white/20",
+                            )}
+                        >
+                            +
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => onToggleExclude(tag.id)}
+                            aria-pressed={isExcluded}
+                            aria-label={`${tag.label} 제외`}
+                            title="제외"
+                            className={cn(
+                                "border-l border-current/20 px-1.5 py-0.5 font-semibold hover:bg-black/10 dark:hover:bg-white/15",
+                                isExcluded && "bg-black/15 dark:bg-white/20",
+                            )}
+                        >
+                            -
+                        </button>
+                    </div>
                 );
             })}
             <AddTagControl onAdd={onAddTag} />

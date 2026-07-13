@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { discoverCalendarTagsByEmail } from "@/features/calendar/api/calendarApi";
 import type { CalendarAddTagFn, CalendarTagActionResult } from "@/features/calendar/types/calendar";
-import type { CalendarTagDef } from "@/features/calendar/tags/tagRegistry";
-import { allTagIds } from "@/features/calendar/tags/tagRegistry";
+import type { CalendarTagDef } from "@/features/calendar/lib/tagRegistry";
+import { allTagIds } from "@/features/calendar/lib/tagRegistry";
 import CalendarSettingsHeader from "@/features/calendar/components/settings/CalendarSettingsHeader";
 import DiscoverTagsSettings from "@/features/calendar/components/settings/DiscoverTagsSettings";
 import MyTagsSettings from "@/features/calendar/components/settings/MyTagsSettings";
@@ -173,8 +173,14 @@ export default function CalendarSettingsPanel({
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-start justify-end bg-black/20 p-3 sm:p-4">
-            <aside className="flex h-full w-full max-w-lg flex-col rounded-lg border border-border bg-background shadow-xl">
+        <div
+            className="fixed inset-0 z-50 flex items-start justify-end bg-black/20 p-3 sm:p-4"
+            onPointerDown={onClose}
+        >
+            <aside
+                className="flex h-full w-full max-w-lg flex-col rounded-lg border border-border bg-background shadow-xl"
+                onPointerDown={(e) => e.stopPropagation()}
+            >
                 <CalendarSettingsHeader
                     tab={tab}
                     stats={stats}
