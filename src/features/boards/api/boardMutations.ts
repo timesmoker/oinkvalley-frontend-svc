@@ -20,7 +20,10 @@ export async function deletePost(postId: string) {
   return apiClient.delete(`/posts/${postId}`);
 }
 
-export async function createComment(postId: string, input: { content: JSONContent }) {
+export async function createComment(
+  postId: string,
+  input: { content: JSONContent; parentCommentId?: number | null },
+) {
   return apiClient.post("/comments", input, { params: { postId } });
 }
 
