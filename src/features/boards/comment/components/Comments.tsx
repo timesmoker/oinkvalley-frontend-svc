@@ -9,7 +9,7 @@ export default function Comments({ postId }: { postId: string }) {
     const [refreshKey, setRefreshKey] = useState(0)
 
     return (
-        <div className="w-full space-y-6">
+        <div className="w-full space-y-3">
             <CommentEditor
                 postId={postId}
                 onSuccess={() => setRefreshKey((k) => k + 1)}

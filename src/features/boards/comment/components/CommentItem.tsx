@@ -7,13 +7,19 @@ import Viewer from "@/features/boards/viewer/components/Viewer";
 import CommentEditor from "@/features/boards/comment/components/CommentEditor";
 import { deleteComment } from "@/features/boards/api/boardMutations";
 import { formatPostDateTime } from "@/features/boards/lib/formatPostDate";
+import { showReplyTarget } from "@/features/boards/comment/lib/groupCommentsByRoot";
 
 export default function CommentItem({
   comment,
   postId,
   isMine,
+  isReply,
   nicknameByUserId,
   deleting,
+  replyOpen,
+  canReply,
+  onReply,
+  onReplyCancel,
   onDeleteStart,
   onDeleteDone,
   onRefresh,
@@ -21,8 +27,14 @@ export default function CommentItem({
   comment: PostComment;
   postId: string;
   isMine: boolean;
+  /** UI depth: root 아래 동일 들여쓰기 */
+  isReply: boolean;
   nicknameByUserId?: Record<string, string>;
   deleting: boolean;
+  replyOpen: boolean;
+  canReply: boolean;
+  onReply: () => void;
+  onReplyCancel: () => void;
   onDeleteStart: () => void;
   onDeleteDone: () => void;
   onRefresh?: () => void;
@@ -42,21 +54,36 @@ export default function CommentItem({
     }
   };
 
+  const replyTargetLabel = (() => {
+    if (!showReplyTarget(comment)) return null;
+    if (comment.parentUserId == null) return "삭제된 댓글에 대한 답글";
+    return `@${authorLabel(nicknameByUserId, comment.parentUserId)}에게 답글`;
+  })();
+
   return (
-    <li className="border rounded-md p-3 bg-gray-50 shadow-sm">
-      <div className="flex justify-between gap-2 text-sm text-gray-500 mb-2">
-        <span>{authorLabel(nicknameByUserId, comment.userId)}</span>
-        <span className="flex shrink-0 items-center gap-2">
+    <li
+      className={isReply ? "bg-gray-100 px-4 py-1 pl-10" : "px-4 py-1"}
+    >
+      <div className="flex items-center justify-between gap-2 text-xs text-gray-500">
+        <span className="truncate text-sm font-bold text-gray-900">
+          {comment.deleted || comment.userId == null
+            ? "삭제된 댓글"
+            : authorLabel(nicknameByUserId, comment.userId)}
+        </span>
+        <span className="flex shrink-0 items-center gap-1.5">
           <span>{formatPostDateTime(comment.createdAt)}</span>
-          {isMine && (
+          {isMine && !comment.deleted && (
             <>
               <button
                 type="button"
                 disabled={deleting}
-                onClick={() => setEditing((v) => !v)}
+                onClick={() => {
+                  onReplyCancel();
+                  setEditing((v) => !v);
+                }}
                 className="text-blue-600 hover:underline disabled:opacity-50"
               >
-                {editing ? "편집 닫기" : "수정"}
+                {editing ? "닫기" : "수정"}
               </button>
               <button
                 type="button"
@@ -70,8 +97,10 @@ export default function CommentItem({
           )}
         </span>
       </div>
-      <div className="text-sm leading-normal min-h-[25px]">
-        {editing ? (
+      {comment.deleted ? (
+        <p className="mt-1 text-xs text-gray-400 italic">삭제된 댓글입니다.</p>
+      ) : editing ? (
+        <div className="mt-1">
           <CommentEditor
             postId={postId}
             commentId={comment.id}
@@ -82,10 +111,37 @@ export default function CommentItem({
               onRefresh?.();
             }}
           />
-        ) : (
-          <Viewer content={comment.content} />
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="mt-1">
+          {replyTargetLabel && (
+            <p className="mb-0.5 text-xs text-gray-500">{replyTargetLabel}</p>
+          )}
+          <div
+            className={
+              "text-sm leading-snug " +
+              "[&_.ProseMirror]:!min-h-0 [&_.ProseMirror]:!p-0 " +
+              "[&_.ProseMirror_p]:!my-0 [&_.ProseMirror_p]:!leading-snug " +
+              "[&_.ProseMirror_p+p]:!mt-1"
+            }
+          >
+            <Viewer content={comment.content} />
+          </div>
+        </div>
+      )}
+      {!comment.deleted && !editing && (
+        <div className="mt-0 flex justify-end leading-none">
+          <button
+            type="button"
+            disabled={deleting || !canReply}
+            onClick={onReply}
+            className="text-xs text-gray-900 hover:underline disabled:opacity-40"
+            title={canReply ? undefined : "로그인 후 답글 가능"}
+          >
+            {replyOpen ? "답글 닫기" : "답글"}
+          </button>
+        </div>
+      )}
     </li>
   );
 }
