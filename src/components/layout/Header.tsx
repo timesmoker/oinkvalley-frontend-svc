@@ -79,7 +79,8 @@ export default function Header() {
                         달력
                     </Link>
                     <Link href="/boards/office-of-architect" className="hover:scale-125 hover:text-black transition">건축 사무소</Link>
-                    <Link href="/boards" className="hover:scale-125 hover:text-black transition">게시판</Link>
+                    <Link href="/boards" className="hover:scale-125 hover:text-black transition">게시판 목록</Link>
+                    <Link href="/boards/guest" className="hover:scale-125 hover:text-black transition">손님 게시판</Link>
                     <Link href="/exercise" className="hover:scale-125 hover:text-black transition">칭찬 스티커</Link>
                 </nav>
 
@@ -136,7 +137,8 @@ export default function Header() {
                         달력
                     </Link>
                     <Link href="/boards/office-of-architect" onClick={toggleMobileMenu}>건축 사무소</Link>
-                    <Link href="/boards" onClick={toggleMobileMenu}>게시판</Link>
+                    <Link href="/boards" onClick={toggleMobileMenu}>게시판 목록</Link>
+                    <Link href="/boards/guest" onClick={toggleMobileMenu}>손님 게시판</Link>
                     <Link href="/exercise" onClick={toggleMobileMenu}>칭찬 스티커</Link>
                     {hasHydrated && (
                         isLoggedIn ? (
