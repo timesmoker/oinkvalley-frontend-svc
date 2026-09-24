@@ -9,7 +9,7 @@ export type CommentThreadSort = "newest" | "oldest";
  */
 export function groupCommentsByRoot(
   comments: PostComment[],
-  threadSort: CommentThreadSort = "newest",
+  threadSort: CommentThreadSort = "oldest",
 ): CommentThread[] {
   const byRoot = new Map<number, { root: PostComment | null; replies: PostComment[] }>();
 

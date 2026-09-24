@@ -6,7 +6,7 @@ Oinkvalley **웹 프론트엔드**다. Next.js(App Router) 기반이며, 게시�
 
 의존성·런타임 버전 요약은 `**package.json**` 과 `**volta**` 필드를 본다(Node 18 계열).
 
-**단일 진실 소스(SOT):** 배포·운영에서 쓰는 값의 기준은 무조건 **infra 폴더**(Helm values, 매니페스트, 환경 변수 정의 등)에 있다. 로컬 `.env.local` 은 편의용이며, 충돌하면 **infra 쪽이 정답이다.**
+**단일 진실 소스(SOT):** 배포·운영에서 쓰는 값의 기준은 무조건 **infra 폴더**(Helm values, 매니페스트, 환경 변수 정의 등)에 있다. 로컬 `.env.local` 로 값을 두지 않는다.
 
 ---
 
@@ -23,15 +23,26 @@ Oinkvalley **웹 프론트엔드**다. Next.js(App Router) 기반이며, 게시�
 
 - **Node:** `package.json` 의 `volta.node` (예: 18.18.2)에 맞춘다.
 - **의존성:** `npm ci`
-- **개발 서버:** `npm run dev`
-- **프로덕션 빌드·실행:** `npm run build` 후 `npm run start`
+- **개발 서버 (로컬 FE + k3s API, env SOT = infra):**
 
-로컬 `.env.local` 예시:
-
-```env
-API_URL=http://localhost:8080
-SIGNUP_ENABLED=true
+```bash
+# monorepo 루트
+./infra/k3s/local/dev-frontend.sh
 ```
+
+JWT 쿠키 로그인을 쓰려면 **localhost 가 아니라** 같은 사이트 이름으로 연다 (`test.oinkvalley.local` 은 k3s FE용이라 덮지 않음):
+
+```bash
+# 한 번만 (sudo)
+echo '127.0.0.1 fe.test.oinkvalley.local' | sudo tee -a /etc/hosts
+
+# 브라우저
+http://fe.test.oinkvalley.local:3000
+```
+
+CORS: `infra/k3s/local/ingress/cors-middleware.yaml` 에 `http://fe.test.oinkvalley.local:3000` 포함. 변경 후 `kubectl apply -f` 그 파일.
+
+- **프로덕션 빌드·실행:** `npm run build` 후 `npm run start`
 
 Docker 로컬 실행 예시:
 

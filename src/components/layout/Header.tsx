@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import Link from "next/link";
 import { Menu, X } from 'lucide-react';
 import { useLogout } from '@/features/auth/hooks/useLogout';
+import NotificationBell from '@/features/notifications/components/NotificationBell';
 
 export default function Header() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -94,13 +95,16 @@ export default function Header() {
                 <div className="hidden md:flex gap-2 min-w-[200px] h-9 items-center justify-end">
                     {hasHydrated ? (
                         isLoggedIn ? (
-                            <Button
-                                variant="default"
-                                onClick={logout}
-                                className="transition-all duration-200 hover:scale-110 hover:opacity-80"
-                            >
-                                로그아웃
-                            </Button>
+                            <>
+                                <NotificationBell />
+                                <Button
+                                    variant="default"
+                                    onClick={logout}
+                                    className="transition-all duration-200 hover:scale-110 hover:opacity-80"
+                                >
+                                    로그아웃
+                                </Button>
+                            </>
                         ) : (
                             <>
                                 <Link href="/login">
@@ -142,9 +146,14 @@ export default function Header() {
                     <Link href="/exercise" onClick={toggleMobileMenu}>칭찬 스티커</Link>
                     {hasHydrated && (
                         isLoggedIn ? (
-                            <Button
-                                onClick={logout} >
-                                로그아웃</Button>
+                            <>
+                                <div className="flex items-center gap-2">
+                                    <NotificationBell />
+                                </div>
+                                <Button
+                                    onClick={logout} >
+                                    로그아웃</Button>
+                            </>
                         ) : (
                             <>
                                 <Link href="/login" onClick={toggleMobileMenu}><Button variant="outline">Sign in</Button></Link>
