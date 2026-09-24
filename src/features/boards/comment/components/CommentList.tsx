@@ -26,7 +26,7 @@ export default function CommentList({
     onRefresh?: () => void
 }) {
     const [page, setPage] = useState(0)
-    const [sort, setSort] = useState<CommentThreadSort>("newest")
+    const [sort, setSort] = useState<CommentThreadSort>("oldest")
     const [deletingId, setDeletingId] = useState<number | null>(null)
     const [replyToId, setReplyToId] = useState<number | null>(null)
     const [expandedRootIds, setExpandedRootIds] = useState<Set<number>>(() => new Set())
