@@ -1,6 +1,6 @@
 import type { CalendarEntryType } from "@/features/calendar/types/calendar";
 
-/** event-svc 이벤트 응답 DTO */
+/** schedule-svc 스케줄 응답 DTO */
 export type CalendarEntryResponse = {
     id: number | string;
     title: string;
@@ -48,7 +48,7 @@ export type FetchCalendarEntriesParams = {
     scope?: "visible" | "mine";
 };
 
-/** event-svc 태그 */
+/** schedule-svc 태그 */
 export type TagResponse = {
     id: number;
     name: string;
