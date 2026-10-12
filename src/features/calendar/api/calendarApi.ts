@@ -1,5 +1,5 @@
 /**
- * event-svc 연동 — Ingress `/events`, `/tags`.
+ * schedule-svc 연동 — Ingress `/schedules`, `/tags`.
  */
 import apiClient from "@/lib/api/apiClient";
 import type { CalendarEntry } from "@/features/calendar/types/calendar";
@@ -78,7 +78,7 @@ export async function fetchCalendarEntries(
         query.tagIds = params.types.join(",");
     }
 
-    const res = await apiClient.get<CalendarEntryResponse[]>("/events", {
+    const res = await apiClient.get<CalendarEntryResponse[]>("/schedules", {
         params: query,
     });
     const data = Array.isArray(res.data) ? res.data : [];
@@ -93,7 +93,7 @@ export async function fetchCalendarEntries(
 export async function createCalendarEntry(
     input: CreateCalendarEntryRequest,
 ): Promise<CalendarEntry> {
-    const res = await apiClient.post<CalendarEntryResponse>("/events", entryPayload(input));
+    const res = await apiClient.post<CalendarEntryResponse>("/schedules", entryPayload(input));
     return mapEntry(res.data);
 }
 
@@ -102,14 +102,14 @@ export async function updateCalendarEntry(
     input: UpdateCalendarEntryRequest,
 ): Promise<CalendarEntry> {
     const res = await apiClient.put<CalendarEntryResponse>(
-        `/events/${encodeURIComponent(entryId)}`,
+        `/schedules/${encodeURIComponent(entryId)}`,
         entryPayload(input),
     );
     return mapEntry(res.data);
 }
 
 export async function deleteCalendarEntry(entryId: string): Promise<void> {
-    await apiClient.delete(`/events/${encodeURIComponent(entryId)}`);
+    await apiClient.delete(`/schedules/${encodeURIComponent(entryId)}`);
 }
 
 export async function discoverCalendarTagsByEmail(email: string): Promise<DiscoverTagResponse[]> {

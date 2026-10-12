@@ -17,9 +17,9 @@ function consumeGuestParam(): boolean {
 /** 게스트 로그인 직후 샘플 일정 시드. 실패·비활성은 조용히 무시. */
 async function bootstrapGuestCalendar(): Promise<void> {
   try {
-    await apiClient.post("/events/guest-bootstrap");
+    await apiClient.post("/schedules/guest-bootstrap");
   } catch {
-    /* event-svc 비활성 또는 거부 — UI 영향 없음 */
+    /* schedule-svc 비활성 또는 거부 — UI 영향 없음 */
   }
 }
 

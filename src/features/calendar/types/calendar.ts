@@ -18,7 +18,7 @@ export type CalendarEntry = {
     endTime?: string;
     note?: string;
     link?: string;
-    /** event-svc `events.visibility` */
+    /** schedule-svc `schedules.visibility` */
     visibility?: "PRIVATE" | "SHARED" | "PUBLIC";
 };
 

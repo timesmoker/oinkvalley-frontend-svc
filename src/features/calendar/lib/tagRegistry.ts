@@ -3,7 +3,7 @@ import type { CalendarEntryType } from "@/features/calendar/types/calendar";
 export type CalendarTagDef = {
     id: CalendarEntryType;
     label: string;
-    /** event-svc `tags.type` — ETC는 삭제·visibility 변경 불가 */
+    /** schedule-svc `tags.type` — ETC는 삭제·visibility 변경 불가 */
     tagType?: "USER" | "ETC";
     builtin?: boolean;
     ownerId?: number | null;
