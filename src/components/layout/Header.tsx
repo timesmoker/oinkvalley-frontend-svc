@@ -7,6 +7,17 @@ import Link from "next/link";
 import { Menu, X } from 'lucide-react';
 import { useLogout } from '@/features/auth/hooks/useLogout';
 import NotificationBell from '@/features/notifications/components/NotificationBell';
+import { BROWSE_DEFINITIONS, browseHref } from '@/features/boards/browse/lib/browseDefinitions';
+
+/** 상단 메뉴 — 데스크톱 nav 와 모바일 메뉴가 같이 쓴다 */
+const NAV_LINKS = [
+    { href: "/calendar", label: "달력" },
+    { href: "/boards/office-of-architect", label: "건축 사무소" },
+    { href: browseHref("all"), label: BROWSE_DEFINITIONS.all.title },
+    { href: "/boards", label: "게시판 목록" },
+    { href: "/boards/guest", label: "손님 게시판" },
+    { href: "/exercise", label: "칭찬 스티커" },
+];
 
 export default function Header() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -76,23 +87,15 @@ export default function Header() {
                 </Link>
 
                 <nav className="hidden md:flex justify-end gap-6 text-sm text-gray-600">
-                    <Link href="/calendar" className="hover:scale-125 hover:text-black transition">
-                        달력
-                    </Link>
-                    <Link href="/boards/office-of-architect" className="hover:scale-125 hover:text-black transition">건축 사무소</Link>
-                    <Link href="/boards" className="hover:scale-125 hover:text-black transition">게시판 목록</Link>
-                    <Link href="/boards/guest" className="hover:scale-125 hover:text-black transition">손님 게시판</Link>
-                    <Link href="/exercise" className="hover:scale-125 hover:text-black transition">칭찬 스티커</Link>
+                    {NAV_LINKS.map((link) => (
+                        <Link key={link.href} href={link.href} className="hover:scale-125 hover:text-black transition">
+                            {link.label}
+                        </Link>
+                    ))}
                 </nav>
 
-                {/* 모바일 메뉴 버튼 */}
-                <div className="md:hidden">
-                    <button onClick={toggleMobileMenu} className="p-2">
-                        {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-                    </button>
-                </div>
-
-                <div className="hidden md:flex gap-2 min-w-[200px] h-9 items-center justify-end">
+                {/* 알림 벨은 한 번만 마운트해 데스크톱·모바일이 같이 쓴다 */}
+                <div className="flex h-9 items-center justify-end gap-2 md:min-w-[200px]">
                     {hasHydrated ? (
                         isLoggedIn ? (
                             <>
@@ -100,14 +103,14 @@ export default function Header() {
                                 <Button
                                     variant="default"
                                     onClick={logout}
-                                    className="transition-all duration-200 hover:scale-110 hover:opacity-80"
+                                    className="hidden md:inline-block transition-all duration-200 hover:scale-110 hover:opacity-80"
                                 >
                                     로그아웃
                                 </Button>
                             </>
                         ) : (
                             <>
-                                <Link href="/login">
+                                <Link href="/login" className="hidden md:block">
                                     <Button
                                         variant="outline"
                                         className="transition-all duration-200 hover:scale-110 hover:text-black"
@@ -115,7 +118,7 @@ export default function Header() {
                                         Sign in
                                     </Button>
                                 </Link>
-                                <Link href="/signup">
+                                <Link href="/signup" className="hidden md:block">
                                     <Button
                                         variant="default"
                                         className="transition-all duration-200 hover:scale-110 hover:opacity-90"
@@ -127,39 +130,50 @@ export default function Header() {
                         )
                     ) : (
                         <>
-                            <div className="w-[80px] h-9 bg-gray-100 rounded animate-pulse" />
-                            <div className="w-[80px] h-9 bg-gray-100 rounded animate-pulse" />
+                            <div className="hidden md:block w-[80px] h-9 bg-gray-100 rounded animate-pulse" />
+                            <div className="hidden md:block w-[80px] h-9 bg-gray-100 rounded animate-pulse" />
                         </>
                     )}
+
+                    {/* 모바일 메뉴 버튼 */}
+                    <button
+                        onClick={toggleMobileMenu}
+                        aria-label={mobileMenuOpen ? "메뉴 닫기" : "메뉴 열기"}
+                        aria-expanded={mobileMenuOpen}
+                        className="md:hidden -mr-2 p-2"
+                    >
+                        {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                    </button>
                 </div>
             </div>
 
             {/* 모바일 메뉴 */}
             {mobileMenuOpen && (
-                <div className="absolute top-16 left-0 w-full bg-white border-t flex flex-col gap-4 px-6 py-4 z-40 text-gray-800 text-sm">
-                    <Link href="/calendar" onClick={toggleMobileMenu}>
-                        달력
-                    </Link>
-                    <Link href="/boards/office-of-architect" onClick={toggleMobileMenu}>건축 사무소</Link>
-                    <Link href="/boards" onClick={toggleMobileMenu}>게시판 목록</Link>
-                    <Link href="/boards/guest" onClick={toggleMobileMenu}>손님 게시판</Link>
-                    <Link href="/exercise" onClick={toggleMobileMenu}>칭찬 스티커</Link>
+                <div className="md:hidden absolute top-full left-0 w-full max-h-[calc(100vh-4rem)] overflow-y-auto bg-white border-t px-6 pb-5 pt-2 z-40 text-gray-800">
+                    <nav className="flex flex-col text-[15px]">
+                        {NAV_LINKS.map((link) => (
+                            <Link key={link.href} href={link.href} onClick={toggleMobileMenu} className="py-2.5">
+                                {link.label}
+                            </Link>
+                        ))}
+                    </nav>
                     {hasHydrated && (
-                        isLoggedIn ? (
-                            <>
-                                <div className="flex items-center gap-2">
-                                    <NotificationBell />
-                                </div>
-                                <Button
-                                    onClick={logout} >
-                                    로그아웃</Button>
-                            </>
-                        ) : (
-                            <>
-                                <Link href="/login" onClick={toggleMobileMenu}><Button variant="outline">Sign in</Button></Link>
-                                <Link href="/signup" onClick={toggleMobileMenu}><Button variant="default">Sign up</Button></Link>
-                            </>
-                        )
+                        <div className="mt-2 flex gap-2 border-t pt-4">
+                            {isLoggedIn ? (
+                                <Button variant="outline" onClick={logout} className="w-full py-2">
+                                    로그아웃
+                                </Button>
+                            ) : (
+                                <>
+                                    <Link href="/login" onClick={toggleMobileMenu} className="flex-1">
+                                        <Button variant="outline" className="w-full py-2">Sign in</Button>
+                                    </Link>
+                                    <Link href="/signup" onClick={toggleMobileMenu} className="flex-1">
+                                        <Button variant="default" className="w-full py-2">Sign up</Button>
+                                    </Link>
+                                </>
+                            )}
+                        </div>
                     )}
                 </div>
             )}

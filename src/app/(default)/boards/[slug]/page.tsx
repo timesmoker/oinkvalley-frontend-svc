@@ -55,7 +55,12 @@ export default async function BoardPage({
 
     return (
         <div className="w-full px-0 py-6 sm:px-6 sm:max-w-[950px] sm:mx-auto">
-            <h1 className="text-2xl font-bold mb-4">{board.name}</h1>
+            <div className="mb-4 px-2 sm:px-0">
+                <h1 className="text-2xl font-bold">{board.name}</h1>
+                {board.summary && (
+                    <p className="mt-1 text-sm text-gray-500 break-keep">{board.summary}</p>
+                )}
+            </div>
 
             <EntryList
                 posts={rows}

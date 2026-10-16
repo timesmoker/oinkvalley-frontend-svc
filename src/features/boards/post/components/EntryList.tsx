@@ -2,7 +2,7 @@
 
 import { PostEntries } from "@/features/boards/types/postEntries";
 import { authorLabel } from "@/features/profile/api/profileSvc";
-import PostTable, { PostListPagination } from "@/features/boards/post/components/PostTable";
+import PostTable, { PostListPagination } from "@/features/boards/shared/components/PostTable";
 
 export default function EntryList({
     posts,
