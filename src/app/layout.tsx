@@ -10,7 +10,7 @@ const inter = Inter({ variable: "--font-sans", subsets: ["latin"] })
 const fira = Fira_Code({ variable: "--font-mono", subsets: ["latin"] })
 
 export const metadata: Metadata = {
-    title: "오잉크 밸리",
+    title: "오잉크밸리",
     description: "오잉크들의 안식처",
     icons: { icon: "/favicon.ico" },
     robots: {
