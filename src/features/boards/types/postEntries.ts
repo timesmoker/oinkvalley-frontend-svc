@@ -5,4 +5,6 @@ export type PostEntries = {
     userId: number;
     createdAt: string;
     commentCount: number;
+    /** AI 가 쓴 글 */
+    aiGenerated: boolean;
 };

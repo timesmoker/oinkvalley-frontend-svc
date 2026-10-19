@@ -16,6 +16,9 @@ export function RecentMenuSections({ onNavigate }: { onNavigate: () => void }) {
                     title={section.title}
                     links={section.links}
                     titleHref={section.titleHref}
+                    aiToggle={section.aiToggle}
+                    loading={section.loading}
+                    emptyText="AI 글을 숨기는 중이에요"
                     className={index === 0 ? "" : "mt-4"}
                     linkClassName="block truncate py-1.5 text-sm text-gray-600"
                     onNavigate={onNavigate}

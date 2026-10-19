@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, FileText } from "lucide-react";
 import { formatPostListDate } from "@/features/boards/lib/formatPostDate";
+import AiBadge from "@/features/boards/shared/components/AiBadge";
 
 /** 목록 한 줄 — 게시판 글 목록과 둘러보기(전체 게시글)가 같이 쓴다. */
 export type PostTableRow = {
@@ -8,6 +9,8 @@ export type PostTableRow = {
     href: string;
     title: string;
     commentCount: number;
+    /** AI 가 쓴 글 — 제목 앞 배지 */
+    aiGenerated?: boolean;
     authorName: string;
     createdAt: string;
     /** showBoard 일 때만 표시 */
@@ -54,6 +57,7 @@ export default function PostTable({
                             )}
                             <div className="flex items-center flex-1 min-w-0">
                                 <FileText className="w-4 h-4 text-muted-foreground mr-2 flex-shrink-0" />
+                                {row.aiGenerated && <AiBadge className="mr-1.5" />}
                                 <Link
                                     href={row.href}
                                     className="flex-1 min-w-0 truncate hover:underline"

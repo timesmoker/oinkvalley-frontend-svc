@@ -70,6 +70,9 @@ export function RecentPostsRail() {
                           title={section.title}
                           links={section.links}
                           titleHref={section.titleHref}
+                          aiToggle={section.aiToggle}
+                          loading={section.loading}
+                          emptyText="AI 글을 숨기는 중이에요"
                           action={index === 0 ? toggleButton : undefined}
                           className={index === 0 ? "" : "mt-5"}
                       />

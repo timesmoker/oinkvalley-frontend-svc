@@ -28,6 +28,7 @@ export default function EntryList({
                     href: `${baseHref}/${entry.id}`,
                     title: entry.title,
                     commentCount: entry.commentCount,
+                    aiGenerated: entry.aiGenerated,
                     authorName: authorLabel(nicknameByUserId, entry.userId),
                     createdAt: entry.createdAt,
                 }))}
