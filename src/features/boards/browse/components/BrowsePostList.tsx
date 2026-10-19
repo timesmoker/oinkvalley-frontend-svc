@@ -28,6 +28,7 @@ export default function BrowsePostList({
                     href: `/boards/${post.boardSlug}/${post.id}${fromQuery}`,
                     title: post.title,
                     commentCount: post.commentCount,
+                    aiGenerated: post.aiGenerated,
                     authorName: authorLabel(nicknameByUserId, post.authorUserId),
                     createdAt: post.createdAt,
                     boardName: post.boardName,

@@ -1,6 +1,7 @@
 // src/app/(default)/browse/[key]/page.tsx
 
 import { notFound } from "next/navigation";
+import { cookies } from "next/headers";
 import BrowsePostList from "@/features/boards/browse/components/BrowsePostList";
 import { fetchBrowsePage } from "@/features/boards/browse/api/browseQueries";
 import type { BrowsePage as BrowsePageData } from "@/features/boards/browse/api/browseTypes";
@@ -11,6 +12,9 @@ import { profilesToNicknameRecord } from "@/features/profile/api/profileSvc";
 import { fetchProfilesByIds } from "@/features/profile/api/profileQueries";
 import { BROWSE_DEFINITIONS, browseHref, isBrowseKey } from "@/features/boards/browse/lib/browseDefinitions";
 import { RecordBoardVisit } from "@/features/boards/recent/components/RecordVisit";
+import HideAiToggle from "@/features/boards/browse/components/HideAiToggle";
+import BrowseListPending from "@/features/boards/browse/components/BrowseListPending";
+import { HIDE_AI_COOKIE, parseHideAi } from "@/features/boards/browse/lib/hideAiCookie";
 
 export const dynamic = "force-dynamic";
 
@@ -27,12 +31,13 @@ export default async function BrowsePage({
     const page = Number.isFinite(parsed) && parsed >= 1 ? parsed : 1;
 
     const definition = BROWSE_DEFINITIONS[params.key];
+    const hideAi = parseHideAi(cookies().get(HIDE_AI_COOKIE)?.value);
     const baseUrl = getServerApiBaseUrl();
     const ssrAuth = getSsrUpstreamAuthFromRequest();
 
     let data: BrowsePageData | null = null;
     try {
-        data = await fetchBrowsePage(baseUrl, params.key, page, ssrAuth);
+        data = await fetchBrowsePage(baseUrl, params.key, page, hideAi, ssrAuth);
     } catch (err) {
         // 로그인 만료는 기존 보호 페이지 처리(로그인으로), 그 외(검색 서비스 장애)는 아래 안내만
         if (err instanceof AuthRequiredError) {
@@ -54,18 +59,23 @@ export default async function BrowsePage({
     return (
         <div className="w-full px-0 py-6 sm:px-6 sm:max-w-[950px] sm:mx-auto">
             <RecordBoardVisit slug={params.key} name={definition.title} browse />
-            <div className="mb-4 px-2 sm:px-0">
-                <h1 className="text-2xl font-bold">{definition.title}</h1>
-                <p className="mt-1 text-sm text-gray-500">{definition.description}</p>
+            <div className="mb-4 flex items-end justify-between gap-3 px-2 sm:px-0">
+                <div className="min-w-0">
+                    <h1 className="text-2xl font-bold">{definition.title}</h1>
+                    <p className="mt-1 text-sm text-gray-500">{definition.description}</p>
+                </div>
+                <HideAiToggle initial={hideAi} />
             </div>
 
-            {data ? (
-                <BrowsePostList data={data} browseKey={params.key} nicknameByUserId={nicknameByUserId} />
-            ) : (
-                <p className="py-12 text-center text-sm text-muted-foreground">
-                    글 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.
-                </p>
-            )}
+            <BrowseListPending>
+                {data ? (
+                    <BrowsePostList data={data} browseKey={params.key} nicknameByUserId={nicknameByUserId} />
+                ) : (
+                    <p className="py-12 text-center text-sm text-muted-foreground">
+                        글 목록을 불러오지 못했어요. 잠시 후 다시 시도해 주세요.
+                    </p>
+                )}
+            </BrowseListPending>
         </div>
     );
 }

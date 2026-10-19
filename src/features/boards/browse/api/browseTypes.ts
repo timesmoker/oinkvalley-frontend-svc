@@ -6,6 +6,8 @@ export type BrowsePost = {
     title: string;
     commentCount: number;
     authorUserId: number;
+    /** AI 가 쓴 글 */
+    aiGenerated: boolean;
     createdAt: string;
 };
 

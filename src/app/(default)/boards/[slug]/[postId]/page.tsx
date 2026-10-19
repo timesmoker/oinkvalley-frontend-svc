@@ -18,6 +18,7 @@ import {
 } from "@/features/profile/api/profileSvc";
 import { fetchProfilesByIds } from "@/features/profile/api/profileQueries";
 import PostOwnerActions from "@/features/boards/post/components/PostOwnerActions";
+import AiBadge from "@/features/boards/shared/components/AiBadge";
 import { RecordBoardVisit, RecordPostVisit } from "@/features/boards/recent/components/RecordVisit";
 import { BROWSE_DEFINITIONS, browseHref, isBrowseKey } from "@/features/boards/browse/lib/browseDefinitions";
 import { formatPostDateTime } from "@/features/boards/lib/formatPostDate";
@@ -110,7 +111,10 @@ export default async function PostPage({
                     </div>
 
                     <div className={boardPostMetaRowClassName}>
-                        <span>{authorDisplay}</span>
+                        <span className="inline-flex items-center gap-1.5">
+                            {post.aiGenerated && <AiBadge />}
+                            {authorDisplay}
+                        </span>
                         <span>{formatPostDateTime(post.createdAt)}</span>
                     </div>
 

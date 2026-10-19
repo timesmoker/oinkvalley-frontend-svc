@@ -14,11 +14,13 @@ export async function fetchBrowsePage(
     baseUrl: string,
     key: BrowseKey,
     page: number,
+    excludeAi: boolean,
     auth?: SsrUpstreamAuth,
 ): Promise<BrowsePage> {
     const url = new URL(`${baseUrl}/browse/${key}/posts`);
     url.searchParams.set("page", String(page));
     url.searchParams.set("size", String(BROWSE_PAGE_SIZE));
+    if (excludeAi) url.searchParams.set("excludeAi", "true");
 
     const res = await fetch(url.toString(), buildSsrUpstreamFetchInit(auth));
     if (res.status === 401) {

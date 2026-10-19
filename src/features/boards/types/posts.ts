@@ -8,4 +8,6 @@ export type PostDetail = {
     content: JSONContent;
     createdAt: string;
     updatedAt: string;
+    /** AI 가 쓴 글 */
+    aiGenerated: boolean;
 };
