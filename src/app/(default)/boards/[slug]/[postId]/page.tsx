@@ -18,6 +18,8 @@ import {
 } from "@/features/profile/api/profileSvc";
 import { fetchProfilesByIds } from "@/features/profile/api/profileQueries";
 import PostOwnerActions from "@/features/boards/post/components/PostOwnerActions";
+import { RecordBoardVisit, RecordPostVisit } from "@/features/boards/recent/components/RecordVisit";
+import { BROWSE_DEFINITIONS, browseHref, isBrowseKey } from "@/features/boards/browse/lib/browseDefinitions";
 import { formatPostDateTime } from "@/features/boards/lib/formatPostDate";
 import { BOARD_POST_DOCUMENT_SHELL_ID } from "@/features/boards/lib/boardPostScrollAnchor";
 import {
@@ -32,7 +34,13 @@ const Viewer = dynamic(() => import('@/features/boards/viewer/components/Viewer'
 const Comments = dynamic(() => import('@/features/boards/comment/components/Comments'), { ssr: false })
 
 
-export default async function PostPage({ params }: { params: { slug: string; postId: string } }) {
+export default async function PostPage({
+    params,
+    searchParams,
+}: {
+    params: { slug: string; postId: string };
+    searchParams: { from?: string; page?: string };
+}) {
     const baseUrl = getServerApiBaseUrl();
     const ssrAuth = getSsrUpstreamAuthFromRequest();
 
@@ -63,14 +71,37 @@ export default async function PostPage({ params }: { params: { slug: string; pos
 
     const authorDisplay = authorLabel(nicknameByUserId, post.userId);
 
+    // 전체 게시글 등 둘러보기에서 들어온 경우: 같은 글 주소를 쓰되 상단 제목·복귀 경로만 둘러보기 기준으로
+    const fromBrowse = searchParams.from && isBrowseKey(searchParams.from) ? searchParams.from : null;
+    const browsePage = parseInt(searchParams.page || "1", 10);
+    const backHref = fromBrowse ? browseHref(fromBrowse, browsePage) : `/boards/${params.slug}`;
+    const backLabel = fromBrowse ? BROWSE_DEFINITIONS[fromBrowse].title : board.name;
+
     return (
         <div className="w-full px-0 py-6 sm:px-6 sm:max-w-[950px] sm:mx-auto">
-            {/* 게시판 이름 */}
-            <h1 id="board-post-scroll-anchor" className="text-2xl font-bold mb-4">
-                <Link href={`/boards/${params.slug}`} className="hover:underline">
-                    {board.name}
-                </Link>
-            </h1>
+            <RecordPostVisit id={post.id} boardSlug={params.slug} title={post.title} />
+            {/* 글을 본 것도 게시판 방문 — 둘러보기에서 왔으면 그 둘러보기를 방문한 것으로 */}
+            {fromBrowse ? (
+                <RecordBoardVisit slug={fromBrowse} name={BROWSE_DEFINITIONS[fromBrowse].title} browse />
+            ) : (
+                <RecordBoardVisit slug={params.slug} name={board.name} />
+            )}
+            {/* 게시판 이름 (둘러보기에서 왔으면 둘러보기 이름 + 올라온 게시판 부제) */}
+            <div className="mb-4">
+                <h1 id="board-post-scroll-anchor" className="text-2xl font-bold">
+                    <Link href={backHref} className="hover:underline">
+                        {backLabel}
+                    </Link>
+                </h1>
+                {fromBrowse && (
+                    <p className="mt-1 text-sm text-gray-500">
+                        <Link href={`/boards/${params.slug}`} className="hover:text-black hover:underline">
+                            {board.name}
+                        </Link>
+                        에 올라온 글
+                    </p>
+                )}
+            </div>
 
             <div id={BOARD_POST_DOCUMENT_SHELL_ID} className={boardPostDocumentShellClassName}>
                 <div className={boardPostArticleColumnClassName}>
@@ -97,6 +128,16 @@ export default async function PostPage({ params }: { params: { slug: string; pos
                 postId={params.postId}
                 authorUserId={post.userId}
             />
+            {fromBrowse && (
+                <div className="mt-4 flex justify-end">
+                    <Link
+                        href={`/boards/${params.slug}`}
+                        className="rounded-lg border border-gray-200 px-4 py-2 text-sm text-gray-700 transition hover:border-pink-300 hover:text-black"
+                    >
+                        {board.name} 게시판으로 이동
+                    </Link>
+                </div>
+            )}
             <div className="w-full mx-auto space-y-6">
                 <Comments postId={params.postId} />
             </div>

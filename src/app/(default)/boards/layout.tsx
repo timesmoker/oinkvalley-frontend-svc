@@ -1,11 +1,10 @@
-
 import React from "react";
+import RecentRailLayout from "@/features/boards/recent/components/RecentRailLayout";
 
 export default function ViewLayout({
                                        children,
                                    }: {
     children: React.ReactNode
 }) {
-    return <div className="px-0 sm:px-6">{children}</div>
+    return <RecentRailLayout>{children}</RecentRailLayout>
 }
-
