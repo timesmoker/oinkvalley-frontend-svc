@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Lock } from "lucide-react";
 import type { BoardListItemResponse } from "@/features/boards/api/boardSvc";
+import { RecentBoardsStrip } from "@/features/boards/recent/components/RecentBoardsStrip";
 import { BROWSE_DEFINITIONS, browseHref, type BrowseKey } from "@/features/boards/browse/lib/browseDefinitions";
 
 const WRAPPER_CLASS = "w-full px-4 py-6 sm:px-6 sm:max-w-[950px] sm:mx-auto";
@@ -43,6 +44,8 @@ export default function BoardSelector({
 
     return (
         <div className={WRAPPER_CLASS}>
+            <RecentBoardsStrip />
+
             <h2 className="text-2xl font-bold mb-4">게시판</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* 둘러보기(전체 게시글 등)는 게시판이 아니지만 게시판 목록 맨 앞에 같은 모양으로 둔다 */}

@@ -1,6 +1,6 @@
 import { authorLabel } from "@/features/profile/api/profileSvc";
 import PostTable, { PostListPagination } from "@/features/boards/shared/components/PostTable";
-import type { BrowsePage } from "@/features/boards/browse/api/browseQueries";
+import type { BrowsePage } from "@/features/boards/browse/api/browseTypes";
 import { browseHref, type BrowseKey } from "@/features/boards/browse/lib/browseDefinitions";
 
 /** 게시판 글 목록과 같은 표 + 게시판 열. 글 링크는 원래 게시판 주소 + 출처(from) 쿼리. */

@@ -7,6 +7,7 @@ import Link from "next/link";
 import { Menu, X } from 'lucide-react';
 import { useLogout } from '@/features/auth/hooks/useLogout';
 import NotificationBell from '@/features/notifications/components/NotificationBell';
+import { RecentMenuSections } from '@/features/boards/recent/components/RecentMenuSections';
 import { BROWSE_DEFINITIONS, browseHref } from '@/features/boards/browse/lib/browseDefinitions';
 
 /** 상단 메뉴 — 데스크톱 nav 와 모바일 메뉴가 같이 쓴다 */
@@ -175,6 +176,7 @@ export default function Header() {
                             )}
                         </div>
                     )}
+                    <RecentMenuSections onNavigate={toggleMobileMenu} />
                 </div>
             )}
         </header>

@@ -2,13 +2,15 @@
 
 import { notFound } from "next/navigation";
 import BrowsePostList from "@/features/boards/browse/components/BrowsePostList";
-import { fetchBrowsePage, type BrowsePage as BrowsePageData } from "@/features/boards/browse/api/browseQueries";
+import { fetchBrowsePage } from "@/features/boards/browse/api/browseQueries";
+import type { BrowsePage as BrowsePageData } from "@/features/boards/browse/api/browseTypes";
 import { getServerApiBaseUrl, getSsrUpstreamAuthFromRequest } from "@/lib/api/serverBaseUrl";
 import { handleProtectedPageError } from "@/lib/auth/handleProtectedPageError";
 import { AuthRequiredError } from "@/lib/api/authRequiredError";
 import { profilesToNicknameRecord } from "@/features/profile/api/profileSvc";
 import { fetchProfilesByIds } from "@/features/profile/api/profileQueries";
 import { BROWSE_DEFINITIONS, browseHref, isBrowseKey } from "@/features/boards/browse/lib/browseDefinitions";
+import { RecordBoardVisit } from "@/features/boards/recent/components/RecordVisit";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +53,7 @@ export default async function BrowsePage({
 
     return (
         <div className="w-full px-0 py-6 sm:px-6 sm:max-w-[950px] sm:mx-auto">
+            <RecordBoardVisit slug={params.key} name={definition.title} browse />
             <div className="mb-4 px-2 sm:px-0">
                 <h1 className="text-2xl font-bold">{definition.title}</h1>
                 <p className="mt-1 text-sm text-gray-500">{definition.description}</p>

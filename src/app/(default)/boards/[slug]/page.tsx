@@ -1,6 +1,7 @@
 // src/app/(default)/boards/[slug]/page.tsx
 
 import EntryList from "@/features/boards/post/components/EntryList";
+import { RecordBoardVisit } from "@/features/boards/recent/components/RecordVisit";
 import Link from "next/link";
 import { PostEntries } from "@/features/boards/types/postEntries";
 import { getServerApiBaseUrl, getSsrUpstreamAuthFromRequest } from "@/lib/api/serverBaseUrl";
@@ -55,6 +56,7 @@ export default async function BoardPage({
 
     return (
         <div className="w-full px-0 py-6 sm:px-6 sm:max-w-[950px] sm:mx-auto">
+            <RecordBoardVisit slug={params.slug} name={board.name} />
             <div className="mb-4 px-2 sm:px-0">
                 <h1 className="text-2xl font-bold">{board.name}</h1>
                 {board.summary && (

@@ -18,6 +18,7 @@ import {
 } from "@/features/profile/api/profileSvc";
 import { fetchProfilesByIds } from "@/features/profile/api/profileQueries";
 import PostOwnerActions from "@/features/boards/post/components/PostOwnerActions";
+import { RecordBoardVisit, RecordPostVisit } from "@/features/boards/recent/components/RecordVisit";
 import { BROWSE_DEFINITIONS, browseHref, isBrowseKey } from "@/features/boards/browse/lib/browseDefinitions";
 import { formatPostDateTime } from "@/features/boards/lib/formatPostDate";
 import { BOARD_POST_DOCUMENT_SHELL_ID } from "@/features/boards/lib/boardPostScrollAnchor";
@@ -78,6 +79,13 @@ export default async function PostPage({
 
     return (
         <div className="w-full px-0 py-6 sm:px-6 sm:max-w-[950px] sm:mx-auto">
+            <RecordPostVisit id={post.id} boardSlug={params.slug} title={post.title} />
+            {/* 글을 본 것도 게시판 방문 — 둘러보기에서 왔으면 그 둘러보기를 방문한 것으로 */}
+            {fromBrowse ? (
+                <RecordBoardVisit slug={fromBrowse} name={BROWSE_DEFINITIONS[fromBrowse].title} browse />
+            ) : (
+                <RecordBoardVisit slug={params.slug} name={board.name} />
+            )}
             {/* 게시판 이름 (둘러보기에서 왔으면 둘러보기 이름 + 올라온 게시판 부제) */}
             <div className="mb-4">
                 <h1 id="board-post-scroll-anchor" className="text-2xl font-bold">

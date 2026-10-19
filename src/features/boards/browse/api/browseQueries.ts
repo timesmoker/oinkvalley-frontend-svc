@@ -2,26 +2,7 @@ import type { BrowseKey } from "@/features/boards/browse/lib/browseDefinitions";
 import type { SsrUpstreamAuth } from "@/lib/api/serverBaseUrl";
 import { buildSsrUpstreamFetchInit } from "@/lib/api/serverBaseUrl";
 import { AuthRequiredError } from "@/lib/api/authRequiredError";
-
-/** search-svc `GET /browse/{key}/posts` 응답 한 줄 */
-export type BrowsePost = {
-    id: number;
-    boardSlug: string;
-    boardName: string;
-    title: string;
-    commentCount: number;
-    authorUserId: number;
-    createdAt: string;
-};
-
-export type BrowsePage = {
-    posts: BrowsePost[];
-    /** 1부터 */
-    page: number;
-    totalPages: number;
-    /** 전체 개수가 상한(maxTotalHits)에 걸림 — totalPages 너머에도 글이 있다 */
-    capped: boolean;
-};
+import type { BrowsePage } from "@/features/boards/browse/api/browseTypes";
 
 export const BROWSE_PAGE_SIZE = 20;
 
