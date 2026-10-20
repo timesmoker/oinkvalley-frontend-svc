@@ -15,6 +15,35 @@ import {
     updateCalendarTagVisibility,
 } from "@/features/calendar/api/calendarApi";
 import type { TagResponse } from "@/features/calendar/api/calendarTypes";
+import apiClient from "@/lib/api/apiClient";
+import type { ProfileResponse } from "@/features/profile/api/profileSvc";
+import { profilesToNicknameRecord } from "@/features/profile/api/profileSvc";
+
+/** 가져온 태그 소유자 닉네임 (프로필 API 한 번). 실패하면 기본 라벨 유지 */
+async function withOwnerNicknames(tags: CalendarTagDef[]): Promise<CalendarTagDef[]> {
+    const ownerIds = [
+        ...new Set(
+            tags
+                .filter((t) => t.source === "followed" && t.ownerId != null)
+                .map((t) => t.ownerId as number),
+        ),
+    ];
+    if (ownerIds.length === 0) return tags;
+    try {
+        const res = await apiClient.get<ProfileResponse[]>("/profiles", {
+            params: { ids: ownerIds.join(",") },
+        });
+        const nicknames = profilesToNicknameRecord(Array.isArray(res.data) ? res.data : []);
+        return tags.map((t) =>
+            t.source === "followed" && t.ownerId != null && nicknames[String(t.ownerId)]
+                ? { ...t, ownerLabel: nicknames[String(t.ownerId)] }
+                : t,
+        );
+    } catch {
+        return tags;
+    }
+}
+
 function mapTagResponse(tag: TagResponse, currentUserId?: number | null): CalendarTagDef {
     const isOwn = currentUserId != null && tag.ownerId === currentUserId;
     const isPublic = tag.visibility === "PUBLIC" || tag.visibility === "SHARED";
@@ -51,7 +80,7 @@ export function useCalendarTags({ currentUserId, enabled }: UseCalendarTagsArgs)
         try {
             const res = await fetchCalendarTags();
             const mapped = res.tags.map((t) => mapTagResponse(t, currentUserId));
-            setTags(mapped);
+            setTags(await withOwnerNicknames(mapped));
         } catch (err) {
             if (axios.isAxiosError(err) && err.response?.status === 401) {
                 setTags([]);
@@ -192,7 +221,12 @@ export function useCalendarTags({ currentUserId, enabled }: UseCalendarTagsArgs)
             try {
                 const res = await followCalendarTag(tag.id);
                 const mapped = mapTagResponse(res, currentUserId);
-                const withSource = { ...mapped, source: "followed" as const, hidden: false };
+                const withSource = {
+                    ...mapped,
+                    ownerLabel: tag.ownerLabel ?? mapped.ownerLabel,
+                    source: "followed" as const,
+                    hidden: false,
+                };
                 setTags((prev) => {
                     const exists = prev.some((t) => t.id === tag.id);
                     if (exists) {

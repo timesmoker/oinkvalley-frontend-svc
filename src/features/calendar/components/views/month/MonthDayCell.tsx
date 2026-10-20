@@ -12,6 +12,7 @@ import {
     clipText,
     entryBlockClasses,
 } from "@/features/calendar/lib/entryUtils";
+import EntryOwnerAvatar from "@/features/calendar/components/entry/EntryOwnerAvatar";
 import EntryTagDots from "@/features/calendar/components/tags/EntryTagDots";
 import { CreatePreviewEdgeShades } from "@/features/calendar/components/entry/CreatePreviewResizable";
 import MonthOverflowDots from "@/features/calendar/components/views/MonthOverflowDots";
@@ -191,6 +192,7 @@ export const MonthDayCell = memo(
                                         tags={entry.tags}
                                         orderedTagIds={orderedTagIds}
                                     />
+                                    <EntryOwnerAvatar entry={entry} />
                                     <span className={cn(clipText, "font-medium")}>
                                         {entry.title}
                                     </span>

@@ -20,6 +20,8 @@ import {
 import { daySelectionFromDate } from "@/features/calendar/lib/draftUtils";
 import DaySummaryPanel from "@/features/calendar/components/panel/DaySummaryPanel";
 import { useCalendarEntries } from "@/features/calendar/hooks/useCalendarEntries";
+import { useCalendarPeopleLabels } from "@/features/calendar/hooks/useCalendarPeopleLabels";
+import { EntryOwnersProvider } from "@/features/calendar/components/entry/EntryOwnerAvatar";
 import { useCalendarTagFilters } from "@/features/calendar/hooks/useCalendarTagFilters";
 import { useCalendarEntryDraft } from "@/features/calendar/hooks/useCalendarEntryDraft";
 import { useFloatingDayPanel } from "@/features/calendar/hooks/useFloatingDayPanel";
@@ -103,6 +105,8 @@ export default function CalendarApp() {
             isLoggedIn: calendarEnabled,
             enabled: hasHydrated,
         });
+
+    const entryNicknames = useCalendarPeopleLabels(entries);
 
     /** 숨김·팔로우·태그 삭제는 서버가 내려주는 일정 범위를 바꾸므로 성공 시 다시 불러온다 */
     const handleHiddenTagAndRefetch = useCallback(
@@ -510,6 +514,10 @@ export default function CalendarApp() {
                             : "min-h-0 overflow-hidden",
                     )}
                 >
+                    <EntryOwnersProvider
+                        currentUserId={calendarEnabled ? (userId ?? null) : null}
+                        nicknameByUserId={entryNicknames}
+                    >
                     {showCalendar && viewMode === "month" && (
                         <MonthView
                             embedded
@@ -542,6 +550,7 @@ export default function CalendarApp() {
                             {...commonViewProps}
                         />
                     )}
+                    </EntryOwnersProvider>
                 </div>
             </div>
 
