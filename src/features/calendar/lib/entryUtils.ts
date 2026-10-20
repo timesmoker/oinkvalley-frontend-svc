@@ -186,14 +186,6 @@ export function calendarRangeForView(
     return { from: key, to: key };
 }
 
-/** API types 쿼리: 전체 선택이면 생략(undefined) */
-export function typesForApiQuery(
-    filter: ReadonlySet<CalendarEntryType>,
-    allIds: CalendarEntryType[],
-): CalendarEntryType[] | undefined {
-    if (filter.size === 0 || filter.size === allIds.length) return undefined;
-    return allIds.filter((t) => filter.has(t));
-}
 
 export function dateKey(year: number, month: number, day: number) {
     return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;

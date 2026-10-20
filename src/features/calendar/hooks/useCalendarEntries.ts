@@ -19,19 +19,23 @@ import type {
     FetchCalendarEntriesParams,
     UpdateCalendarEntryRequest,
 } from "@/features/calendar/api/calendarTypes";
+import { PARTICIPATING_TAG_ID } from "@/features/calendar/lib/tagRegistry";
 import {
     calendarRangeForView,
     entryOverlapsRange,
     entryPassesTagFilter,
-    typesForApiQuery,
 } from "@/features/calendar/lib/entryUtils";
+
+/** 볼 수 있는 태그가 하나도 없이 온 일정(=남의 일정에 참여) → 가상 태그 「참여 일정」 */
+function withParticipatingTag(entry: CalendarEntry): CalendarEntry {
+    return entry.tags.length > 0 ? entry : { ...entry, tags: [PARTICIPATING_TAG_ID] };
+}
 
 type UseCalendarEntriesArgs = {
     viewMode: CalendarViewMode;
     viewDate: Date;
     includeTypes: ReadonlySet<CalendarEntryType>;
     excludeTypes: ReadonlySet<CalendarEntryType>;
-    tagIds: CalendarEntryType[];
     scope: CalendarEventScope;
     isLoggedIn: boolean;
     /** hydrate 후 API 호출 */
@@ -43,7 +47,6 @@ export function useCalendarEntries({
     viewDate,
     includeTypes,
     excludeTypes,
-    tagIds,
     scope,
     isLoggedIn,
     enabled,
@@ -56,17 +59,17 @@ export function useCalendarEntries({
     const inflight = useRef<AbortController | null>(null);
 
     /**
-     * 요청 조건을 문자열 키로 고정한다. 필터 Set·태그 배열은 hydrate·태그 로딩 중 내용이 같아도
-     * 참조가 바뀌므로, 참조 대신 실제 요청 내용이 바뀔 때만 다시 불러온다.
+     * 요청 조건(기간·scope)을 문자열 키로 고정해 실제 요청 내용이 바뀔 때만 다시 불러온다.
+     * 태그 필터는 서버에 보내지 않고 받은 일정에 FE 에서만 적용한다 (가상 태그 「참여 일정」은 서버가 모름,
+     * 필터를 바꿔도 다시 요청하지 않음).
      */
     const requestKey = useMemo(() => {
         if (!enabled) return JSON.stringify({ kind: "disabled" });
         if (scope === "mine" && !isLoggedIn) return JSON.stringify({ kind: "auth" });
         const { from, to } = calendarRangeForView(viewMode, viewDate);
-        const types = isLoggedIn ? typesForApiQuery(includeTypes, tagIds) : [];
-        const params: FetchCalendarEntriesParams = { from, to, types, scope };
-        return JSON.stringify({ kind: "fetch", params });
-    }, [viewMode, viewDate, includeTypes, tagIds, scope, isLoggedIn, enabled]);
+        const params: FetchCalendarEntriesParams = { from, to, scope };
+        return JSON.stringify({ kind: "fetch", params, isLoggedIn });
+    }, [viewMode, viewDate, scope, isLoggedIn, enabled]);
 
     const loadRangeEntries = useCallback(async () => {
         inflight.current?.abort();
@@ -75,7 +78,7 @@ export function useCalendarEntries({
         const request = JSON.parse(requestKey) as
             | { kind: "disabled" }
             | { kind: "auth" }
-            | { kind: "fetch"; params: FetchCalendarEntriesParams };
+            | { kind: "fetch"; params: FetchCalendarEntriesParams; isLoggedIn: boolean };
 
         if (request.kind === "disabled") {
             setLoading(false);
@@ -100,7 +103,7 @@ export function useCalendarEntries({
         try {
             const data = await fetchCalendarEntries(request.params, controller.signal);
             if (controller.signal.aborted) return;
-            setRangeEntries(data);
+            setRangeEntries(request.isLoggedIn ? data.map(withParticipatingTag) : data);
             setError(null);
             hasLoadedOnce.current = true;
         } catch (err) {

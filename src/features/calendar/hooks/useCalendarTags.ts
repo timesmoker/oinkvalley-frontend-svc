@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import type { CalendarTagDef } from "@/features/calendar/lib/tagRegistry";
-import { slugifyTagLabel } from "@/features/calendar/lib/tagRegistry";
+import { PARTICIPATING_TAG, slugifyTagLabel } from "@/features/calendar/lib/tagRegistry";
 import {
     createCalendarTag,
     deleteCalendarTag,
@@ -68,11 +68,14 @@ type UseCalendarTagsArgs = {
 export function useCalendarTags({ currentUserId, enabled }: UseCalendarTagsArgs) {
     const [tags, setTags] = useState<CalendarTagDef[]>([]);
     const [loading, setLoading] = useState(false);
+    /** 태그 목록을 한 번이라도 받았는지 — 받기 전엔 필터 목록을 비워 둬 필터 초기화가 먼저 돌지 않게 한다 */
+    const [loaded, setLoaded] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const reload = useCallback(async () => {
         if (!enabled) {
             setTags([]);
+            setLoaded(false);
             return;
         }
         setLoading(true);
@@ -81,6 +84,7 @@ export function useCalendarTags({ currentUserId, enabled }: UseCalendarTagsArgs)
             const res = await fetchCalendarTags();
             const mapped = res.tags.map((t) => mapTagResponse(t, currentUserId));
             setTags(await withOwnerNicknames(mapped));
+            setLoaded(true);
         } catch (err) {
             if (axios.isAxiosError(err) && err.response?.status === 401) {
                 setTags([]);
@@ -97,7 +101,11 @@ export function useCalendarTags({ currentUserId, enabled }: UseCalendarTagsArgs)
     }, [reload]);
 
     const allTags = tags;
-    const visibleTags = useMemo(() => allTags.filter((tag) => !tag.hidden), [allTags]);
+    /** 왼쪽 필터용: 숨기지 않은 태그 + 가상 태그 「참여 일정」(로그인 시) */
+    const visibleTags = useMemo(
+        () => (enabled && loaded ? [...allTags.filter((tag) => !tag.hidden), PARTICIPATING_TAG] : []),
+        [allTags, enabled, loaded],
+    );
     const orderedTagIds = useMemo(() => allTags.map((t) => t.id), [allTags]);
     const tagIds = useMemo(() => visibleTags.map((t) => t.id), [visibleTags]);
 
