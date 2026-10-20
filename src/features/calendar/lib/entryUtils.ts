@@ -98,10 +98,10 @@ export function formatEntryParticipantsLabel(
     nicknameByUserId?: Record<string, string>,
     participantEmails: string[] = [],
 ): string {
-    const labels = [
-        ...participantIds.map((id) => authorLabel(nicknameByUserId, id)),
-        ...participantEmails,
-    ];
+    // participantEmails 는 participantIds 와 같은 순서의 같은 사람 — 닉네임이 없을 때만 이메일로 대신한다
+    const labels = participantIds.map(
+        (id, i) => nicknameByUserId?.[String(id)] ?? participantEmails[i] ?? authorLabel(nicknameByUserId, id),
+    );
     if (labels.length === 0) return "—";
     return labels.join(", ");
 }

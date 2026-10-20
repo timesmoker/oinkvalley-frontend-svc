@@ -3,6 +3,7 @@
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import UserAvatar from "@/components/ui/UserAvatar";
 import type { CalendarEntry } from "@/features/calendar/types/calendar";
+import { authorLabel } from "@/features/profile/api/profileSvc";
 import { cn } from "@/lib/utils";
 
 type EntryOwners = {
@@ -35,6 +36,6 @@ export default function EntryOwnerAvatar({
 }) {
     const { currentUserId, nicknameByUserId } = useContext(EntryOwnersContext);
     if (currentUserId == null || entry.ownerId === currentUserId) return null;
-    const name = nicknameByUserId[String(entry.ownerId)] ?? `사용자 #${entry.ownerId}`;
+    const name = authorLabel(nicknameByUserId, entry.ownerId);
     return <UserAvatar name={name} className={cn("h-3.5 w-3.5 text-[8px]", className)} />;
 }

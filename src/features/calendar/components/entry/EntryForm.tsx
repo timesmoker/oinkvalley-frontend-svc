@@ -110,7 +110,7 @@ export default function EntryForm({
     const [saving, setSaving] = useState(false);
     const [tagError, setTagError] = useState<string | null>(null);
     const [visibility, setVisibility] = useState<"PRIVATE" | "SHARED" | "PUBLIC">(
-        () => initialEntry?.visibility ?? "PRIVATE",
+        () => initialEntry?.visibility ?? "SHARED",
     );
     const [formError, setFormError] = useState<string | null>(null);
     const [showNote, setShowNote] = useState(() => Boolean(initialEntry?.note));
@@ -481,8 +481,8 @@ export default function EntryForm({
                     className={cn(inputClass, "px-2 py-1.5")}
                 >
                     <option value="PRIVATE">비공개 (나·참여자)</option>
-                    <option value="SHARED">공유 (태그 접근 가능한 사용자)</option>
-                    <option value="PUBLIC">공개 (누구나)</option>
+                    <option value="SHARED">공유 (태그를 구독한 사용자)</option>
+                    <option value="PUBLIC">공개 (태그 구독자 + 비로그인 방문자)</option>
                 </select>
             </label>
 

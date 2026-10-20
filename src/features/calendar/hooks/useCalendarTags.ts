@@ -17,7 +17,7 @@ import {
 import type { TagResponse } from "@/features/calendar/api/calendarTypes";
 import apiClient from "@/lib/api/apiClient";
 import type { ProfileResponse } from "@/features/profile/api/profileSvc";
-import { profilesToNicknameRecord } from "@/features/profile/api/profileSvc";
+import { profilesToNicknameRecord, UNKNOWN_USER_LABEL } from "@/features/profile/api/profileSvc";
 
 /** 가져온 태그 소유자 닉네임 (프로필 API 한 번). 실패하면 기본 라벨 유지 */
 async function withOwnerNicknames(tags: CalendarTagDef[]): Promise<CalendarTagDef[]> {
@@ -53,7 +53,7 @@ function mapTagResponse(tag: TagResponse, currentUserId?: number | null): Calend
         label: tag.name,
         tagType,
         ownerId: tag.ownerId,
-        ownerLabel: isOwn ? "나" : `사용자 #${tag.ownerId}`,
+        ownerLabel: isOwn ? "나" : UNKNOWN_USER_LABEL,
         visibility: isPublic ? "public" : "private",
         source: isOwn ? "own" : "followed",
         hidden: tag.hidden === true,
