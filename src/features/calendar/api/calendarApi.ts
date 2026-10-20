@@ -128,9 +128,6 @@ export async function fetchCalendarTags(): Promise<TagListResponse> {
     const data = res.data;
     return {
         tags: Array.isArray(data?.tags) ? data.tags : [],
-        defaultVisibleTagIds: Array.isArray(data?.defaultVisibleTagIds)
-            ? data.defaultVisibleTagIds
-            : [],
     };
 }
 

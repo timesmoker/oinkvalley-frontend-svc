@@ -49,7 +49,6 @@ export default function CalendarApp() {
         visibleTags,
         orderedTagIds,
         tagIds,
-        defaultVisibleTagIdStrings,
         renameTag,
         setTagVisibility,
         typeFilter,
@@ -93,7 +92,7 @@ export default function CalendarApp() {
         return () => query.removeEventListener("change", close);
     }, []);
 
-    const { entries, loading, error, authRequired, addEntry, updateEntry, deleteEntry } =
+    const { entries, loading, error, authRequired, addEntry, updateEntry, deleteEntry, refetch } =
         useCalendarEntries({
             viewMode,
             viewDate,
@@ -104,6 +103,34 @@ export default function CalendarApp() {
             isLoggedIn: calendarEnabled,
             enabled: hasHydrated,
         });
+
+    /** 숨김·팔로우·태그 삭제는 서버가 내려주는 일정 범위를 바꾸므로 성공 시 다시 불러온다 */
+    const handleHiddenTagAndRefetch = useCallback(
+        async (id: string, hidden: boolean) => {
+            const changed = await handleHiddenTag(id, hidden);
+            if (changed) refetch();
+            return changed;
+        },
+        [handleHiddenTag, refetch],
+    );
+
+    const handleFollowTagAndRefetch = useCallback(
+        async (tag: Parameters<typeof handleFollowTag>[0]) => {
+            const id = await handleFollowTag(tag);
+            if (id) refetch();
+            return id;
+        },
+        [handleFollowTag, refetch],
+    );
+
+    const handleDeleteTagAndRefetch = useCallback(
+        async (id: string) => {
+            const removed = await handleDeleteTag(id);
+            if (removed) refetch();
+            return removed;
+        },
+        [handleDeleteTag, refetch],
+    );
 
     const handleSelectDate = useCallback((date: Date) => {
         setSelectedDay(daySelectionFromDate(date));
@@ -551,14 +578,13 @@ export default function CalendarApp() {
             <CalendarSettingsPanel
                 open={settingsOpen}
                 tags={allTags}
-                defaultVisibleTagIds={defaultVisibleTagIdStrings}
                 currentUserId={userId}
                 onClose={() => setSettingsOpen(false)}
                 onAddTag={handleAddTag}
-                onDeleteTag={handleDeleteTag}
+                onDeleteTag={handleDeleteTagAndRefetch}
                 onVisibilityChange={setTagVisibility}
-                onHiddenChange={handleHiddenTag}
-                onFollowTag={handleFollowTag}
+                onHiddenChange={handleHiddenTagAndRefetch}
+                onFollowTag={handleFollowTagAndRefetch}
                 onRenameTag={async (id, name) => renameTag(id, name)}
             />
         </div>

@@ -25,14 +25,6 @@ export function isEtcTag(tag: CalendarTagDef) {
     return tag.tagType === "ETC";
 }
 
-/** 서버 `CALENDAR_DEFAULT_VISIBLE_TAG_IDS` 등 공통·기본 노출 태그 — 삭제(휴지통) 대상 아님 */
-export function isSystemSharedTag(
-    tag: CalendarTagDef,
-    defaultVisibleTagIds: ReadonlySet<string>,
-) {
-    return tag.builtin === true || defaultVisibleTagIds.has(tag.id);
-}
-
 export function canManageTag(tag: CalendarTagDef, currentOwnerId: number | null) {
     return (
         !tag.builtin &&
@@ -43,17 +35,9 @@ export function canManageTag(tag: CalendarTagDef, currentOwnerId: number | null)
 }
 
 /** 설정 패널 휴지통 표시 — 실제 삭제·내 목록 제거가 가능할 때만 true */
-export function canRemoveTag(
-    tag: CalendarTagDef,
-    currentOwnerId: number | null,
-    defaultVisibleTagIds: ReadonlySet<string> = new Set(),
-) {
+export function canRemoveTag(tag: CalendarTagDef, currentOwnerId: number | null) {
     if (tag.builtin || isEtcTag(tag)) return false;
-    if (canManageTag(tag, currentOwnerId)) return true;
-    if (tag.source === "followed" && !isSystemSharedTag(tag, defaultVisibleTagIds)) {
-        return true;
-    }
-    return false;
+    return canManageTag(tag, currentOwnerId) || tag.source === "followed";
 }
 
 export function calculateTagStats(tags: CalendarTagDef[]) {

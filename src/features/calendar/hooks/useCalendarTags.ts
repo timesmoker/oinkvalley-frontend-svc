@@ -15,7 +15,6 @@ import {
     updateCalendarTagVisibility,
 } from "@/features/calendar/api/calendarApi";
 import type { TagResponse } from "@/features/calendar/api/calendarTypes";
-
 function mapTagResponse(tag: TagResponse, currentUserId?: number | null): CalendarTagDef {
     const isOwn = currentUserId != null && tag.ownerId === currentUserId;
     const isPublic = tag.visibility === "PUBLIC" || tag.visibility === "SHARED";
@@ -39,14 +38,12 @@ type UseCalendarTagsArgs = {
 
 export function useCalendarTags({ currentUserId, enabled }: UseCalendarTagsArgs) {
     const [tags, setTags] = useState<CalendarTagDef[]>([]);
-    const [defaultVisibleTagIds, setDefaultVisibleTagIds] = useState<number[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const reload = useCallback(async () => {
         if (!enabled) {
             setTags([]);
-            setDefaultVisibleTagIds([]);
             return;
         }
         setLoading(true);
@@ -55,11 +52,9 @@ export function useCalendarTags({ currentUserId, enabled }: UseCalendarTagsArgs)
             const res = await fetchCalendarTags();
             const mapped = res.tags.map((t) => mapTagResponse(t, currentUserId));
             setTags(mapped);
-            setDefaultVisibleTagIds(res.defaultVisibleTagIds);
         } catch (err) {
             if (axios.isAxiosError(err) && err.response?.status === 401) {
                 setTags([]);
-                setDefaultVisibleTagIds([]);
             } else {
                 setError("태그를 불러오지 못했습니다.");
             }
@@ -76,11 +71,6 @@ export function useCalendarTags({ currentUserId, enabled }: UseCalendarTagsArgs)
     const visibleTags = useMemo(() => allTags.filter((tag) => !tag.hidden), [allTags]);
     const orderedTagIds = useMemo(() => allTags.map((t) => t.id), [allTags]);
     const tagIds = useMemo(() => visibleTags.map((t) => t.id), [visibleTags]);
-
-    const defaultVisibleTagIdStrings = useMemo(
-        () => defaultVisibleTagIds.map(String),
-        [defaultVisibleTagIds],
-    );
 
     const patchTagHiddenLocal = useCallback((id: string, hidden: boolean) => {
         setTags((prev) =>
@@ -223,7 +213,6 @@ export function useCalendarTags({ currentUserId, enabled }: UseCalendarTagsArgs)
         visibleTags,
         orderedTagIds,
         tagIds,
-        defaultVisibleTagIdStrings,
         loading,
         error,
         addTag,
