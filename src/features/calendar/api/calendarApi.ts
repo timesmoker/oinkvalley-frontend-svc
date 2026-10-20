@@ -68,6 +68,7 @@ function entryPayload(input: CreateCalendarEntryRequest) {
 
 export async function fetchCalendarEntries(
     params: FetchCalendarEntriesParams,
+    signal?: AbortSignal,
 ): Promise<CalendarEntry[]> {
     const query: Record<string, string> = {
         from: params.from,
@@ -80,6 +81,7 @@ export async function fetchCalendarEntries(
 
     const res = await apiClient.get<CalendarEntryResponse[]>("/schedules", {
         params: query,
+        signal,
     });
     const data = Array.isArray(res.data) ? res.data : [];
     const byId = new Map<string, CalendarEntry>();

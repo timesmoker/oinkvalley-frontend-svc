@@ -16,6 +16,7 @@ import {
 } from "@/features/calendar/api/calendarApi";
 import type {
     CreateCalendarEntryRequest,
+    FetchCalendarEntriesParams,
     UpdateCalendarEntryRequest,
 } from "@/features/calendar/api/calendarTypes";
 import {
@@ -52,34 +53,58 @@ export function useCalendarEntries({
     const [error, setError] = useState<string | null>(null);
     const [authRequired, setAuthRequired] = useState(false);
     const hasLoadedOnce = useRef(false);
+    const inflight = useRef<AbortController | null>(null);
+
+    /**
+     * 요청 조건을 문자열 키로 고정한다. 필터 Set·태그 배열은 hydrate·태그 로딩 중 내용이 같아도
+     * 참조가 바뀌므로, 참조 대신 실제 요청 내용이 바뀔 때만 다시 불러온다.
+     */
+    const requestKey = useMemo(() => {
+        if (!enabled) return JSON.stringify({ kind: "disabled" });
+        if (scope === "mine" && !isLoggedIn) return JSON.stringify({ kind: "auth" });
+        const { from, to } = calendarRangeForView(viewMode, viewDate);
+        const types = isLoggedIn ? typesForApiQuery(includeTypes, tagIds) : [];
+        const params: FetchCalendarEntriesParams = { from, to, types, scope };
+        return JSON.stringify({ kind: "fetch", params });
+    }, [viewMode, viewDate, includeTypes, tagIds, scope, isLoggedIn, enabled]);
 
     const loadRangeEntries = useCallback(async () => {
-        if (!enabled) {
+        inflight.current?.abort();
+        inflight.current = null;
+
+        const request = JSON.parse(requestKey) as
+            | { kind: "disabled" }
+            | { kind: "auth" }
+            | { kind: "fetch"; params: FetchCalendarEntriesParams };
+
+        if (request.kind === "disabled") {
             setLoading(false);
             setAuthRequired(false);
             setRangeEntries([]);
             return;
         }
 
-        if (scope === "mine" && !isLoggedIn) {
+        if (request.kind === "auth") {
             setAuthRequired(true);
             setRangeEntries([]);
             setLoading(false);
             return;
         }
 
-        const { from, to } = calendarRangeForView(viewMode, viewDate);
-        const types = isLoggedIn ? typesForApiQuery(includeTypes, tagIds) : [];
+        const controller = new AbortController();
+        inflight.current = controller;
 
         if (!hasLoadedOnce.current) setLoading(true);
         setAuthRequired(false);
 
         try {
-            const data = await fetchCalendarEntries({ from, to, types, scope });
+            const data = await fetchCalendarEntries(request.params, controller.signal);
+            if (controller.signal.aborted) return;
             setRangeEntries(data);
             setError(null);
             hasLoadedOnce.current = true;
         } catch (err) {
+            if (controller.signal.aborted || axios.isCancel(err)) return;
             if (axios.isAxiosError(err) && err.response?.status === 401) {
                 setAuthRequired(true);
                 setRangeEntries([]);
@@ -88,13 +113,18 @@ export function useCalendarEntries({
                 setError("일정을 불러오지 못했습니다.");
             }
         } finally {
-            setLoading(false);
+            if (!controller.signal.aborted) {
+                setLoading(false);
+                inflight.current = null;
+            }
         }
-    }, [viewMode, viewDate, includeTypes, tagIds, scope, isLoggedIn, enabled]);
+    }, [requestKey]);
 
     useEffect(() => {
         void loadRangeEntries();
     }, [loadRangeEntries]);
+
+    useEffect(() => () => inflight.current?.abort(), []);
 
     const entries = useMemo(() => {
         if (!isLoggedIn) {
