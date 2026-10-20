@@ -19,6 +19,18 @@ export type TagStyle = { bg: string; border: string; text: string; dot: string }
 /** 내장 태그 `other`(기타) — 항상 회색, 팔레트 순환과 무관 */
 export const OTHER_TAG_ID = "other";
 
+/**
+ * 가상 태그 「참여 일정」 — 내가 참여자인 남의 일정 중 내가 볼 수 있는 태그가 하나도 없는 것.
+ * 서버는 태그 없이 내려주고(남의 비공개 태그는 응답에서 빠짐), FE 가 이 태그로 묶어 필터·회색 점으로 표시한다.
+ */
+export const PARTICIPATING_TAG_ID = "participating";
+
+export const PARTICIPATING_TAG: CalendarTagDef = {
+    id: PARTICIPATING_TAG_ID,
+    label: "참여 일정",
+    builtin: true,
+};
+
 export const OTHER_TAG_STYLE: TagStyle = {
     bg: "bg-slate-200 dark:bg-slate-800/85",
     border: "border-slate-500/70 dark:border-slate-500",
@@ -125,7 +137,7 @@ export function colorOrderIndex(
 ): number {
     let index = 0;
     for (const tagId of orderedTagIds) {
-        if (tagId === OTHER_TAG_ID) continue;
+        if (tagId === OTHER_TAG_ID || tagId === PARTICIPATING_TAG_ID) continue;
         if (tagId === id) return index;
         index++;
     }
@@ -137,13 +149,14 @@ export function getTagStyle(
     id: CalendarEntryType,
     orderedTagIds: readonly CalendarEntryType[],
 ): TagStyle {
-    if (id === OTHER_TAG_ID) return OTHER_TAG_STYLE;
+    if (id === OTHER_TAG_ID || id === PARTICIPATING_TAG_ID) return OTHER_TAG_STYLE;
     const orderIndex = colorOrderIndex(id, orderedTagIds);
     if (orderIndex < 0) return TAG_COLOR_PALETTE[0]!;
     return tagStyleAtOrder(orderIndex);
 }
 
 export function getTagLabel(id: CalendarEntryType, defs: CalendarTagDef[]): string {
+    if (id === PARTICIPATING_TAG_ID) return PARTICIPATING_TAG.label;
     return defs.find((d) => d.id === id)?.label ?? id;
 }
 

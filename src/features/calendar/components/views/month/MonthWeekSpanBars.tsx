@@ -12,6 +12,7 @@ import {
     MONTH_SPAN_BAR_H,
     type WeekSpanBar,
 } from "@/features/calendar/lib/monthLayout";
+import EntryOwnerAvatar from "@/features/calendar/components/entry/EntryOwnerAvatar";
 import EntryTagDots from "@/features/calendar/components/tags/EntryTagDots";
 import CreatePreviewResizable, {
     CreatePreviewEdgeShades,
@@ -110,6 +111,7 @@ export default function MonthWeekSpanBars({
                             tags={bar.entry.tags}
                             orderedTagIds={orderedTagIds}
                         />
+                        <EntryOwnerAvatar entry={bar.entry} />
                         <span className={cn(clipText, "font-semibold")}>
                             {bar.entry.title}
                         </span>

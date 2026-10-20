@@ -16,21 +16,26 @@ import {
 } from "@/features/calendar/api/calendarApi";
 import type {
     CreateCalendarEntryRequest,
+    FetchCalendarEntriesParams,
     UpdateCalendarEntryRequest,
 } from "@/features/calendar/api/calendarTypes";
+import { PARTICIPATING_TAG_ID } from "@/features/calendar/lib/tagRegistry";
 import {
     calendarRangeForView,
     entryOverlapsRange,
     entryPassesTagFilter,
-    typesForApiQuery,
 } from "@/features/calendar/lib/entryUtils";
+
+/** 볼 수 있는 태그가 하나도 없이 온 일정(=남의 일정에 참여) → 가상 태그 「참여 일정」 */
+function withParticipatingTag(entry: CalendarEntry): CalendarEntry {
+    return entry.tags.length > 0 ? entry : { ...entry, tags: [PARTICIPATING_TAG_ID] };
+}
 
 type UseCalendarEntriesArgs = {
     viewMode: CalendarViewMode;
     viewDate: Date;
     includeTypes: ReadonlySet<CalendarEntryType>;
     excludeTypes: ReadonlySet<CalendarEntryType>;
-    tagIds: CalendarEntryType[];
     scope: CalendarEventScope;
     isLoggedIn: boolean;
     /** hydrate 후 API 호출 */
@@ -42,7 +47,6 @@ export function useCalendarEntries({
     viewDate,
     includeTypes,
     excludeTypes,
-    tagIds,
     scope,
     isLoggedIn,
     enabled,
@@ -52,34 +56,58 @@ export function useCalendarEntries({
     const [error, setError] = useState<string | null>(null);
     const [authRequired, setAuthRequired] = useState(false);
     const hasLoadedOnce = useRef(false);
+    const inflight = useRef<AbortController | null>(null);
+
+    /**
+     * 요청 조건(기간·scope)을 문자열 키로 고정해 실제 요청 내용이 바뀔 때만 다시 불러온다.
+     * 태그 필터는 서버에 보내지 않고 받은 일정에 FE 에서만 적용한다 (가상 태그 「참여 일정」은 서버가 모름,
+     * 필터를 바꿔도 다시 요청하지 않음).
+     */
+    const requestKey = useMemo(() => {
+        if (!enabled) return JSON.stringify({ kind: "disabled" });
+        if (scope === "mine" && !isLoggedIn) return JSON.stringify({ kind: "auth" });
+        const { from, to } = calendarRangeForView(viewMode, viewDate);
+        const params: FetchCalendarEntriesParams = { from, to, scope };
+        return JSON.stringify({ kind: "fetch", params, isLoggedIn });
+    }, [viewMode, viewDate, scope, isLoggedIn, enabled]);
 
     const loadRangeEntries = useCallback(async () => {
-        if (!enabled) {
+        inflight.current?.abort();
+        inflight.current = null;
+
+        const request = JSON.parse(requestKey) as
+            | { kind: "disabled" }
+            | { kind: "auth" }
+            | { kind: "fetch"; params: FetchCalendarEntriesParams; isLoggedIn: boolean };
+
+        if (request.kind === "disabled") {
             setLoading(false);
             setAuthRequired(false);
             setRangeEntries([]);
             return;
         }
 
-        if (scope === "mine" && !isLoggedIn) {
+        if (request.kind === "auth") {
             setAuthRequired(true);
             setRangeEntries([]);
             setLoading(false);
             return;
         }
 
-        const { from, to } = calendarRangeForView(viewMode, viewDate);
-        const types = isLoggedIn ? typesForApiQuery(includeTypes, tagIds) : [];
+        const controller = new AbortController();
+        inflight.current = controller;
 
         if (!hasLoadedOnce.current) setLoading(true);
         setAuthRequired(false);
 
         try {
-            const data = await fetchCalendarEntries({ from, to, types, scope });
-            setRangeEntries(data);
+            const data = await fetchCalendarEntries(request.params, controller.signal);
+            if (controller.signal.aborted) return;
+            setRangeEntries(request.isLoggedIn ? data.map(withParticipatingTag) : data);
             setError(null);
             hasLoadedOnce.current = true;
         } catch (err) {
+            if (controller.signal.aborted || axios.isCancel(err)) return;
             if (axios.isAxiosError(err) && err.response?.status === 401) {
                 setAuthRequired(true);
                 setRangeEntries([]);
@@ -88,13 +116,18 @@ export function useCalendarEntries({
                 setError("일정을 불러오지 못했습니다.");
             }
         } finally {
-            setLoading(false);
+            if (!controller.signal.aborted) {
+                setLoading(false);
+                inflight.current = null;
+            }
         }
-    }, [viewMode, viewDate, includeTypes, tagIds, scope, isLoggedIn, enabled]);
+    }, [requestKey]);
 
     useEffect(() => {
         void loadRangeEntries();
     }, [loadRangeEntries]);
+
+    useEffect(() => () => inflight.current?.abort(), []);
 
     const entries = useMemo(() => {
         if (!isLoggedIn) {

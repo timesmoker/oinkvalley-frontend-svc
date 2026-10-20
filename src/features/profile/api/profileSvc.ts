@@ -20,11 +20,13 @@ export function profilesToNicknameRecord(
   return out;
 }
 
-/** 프로필 미조회 시 보드 `userId` 표시용 폴백 */
+/** 프로필 미조회 시 표시용 폴백 — 내부 userId 는 화면에 내보내지 않는다 */
+export const UNKNOWN_USER_LABEL = "알 수 없는 사용자";
+
 export function authorLabel(
   nicknameByUserId: Record<string, string> | undefined,
   userId: number,
 ): string {
   const nick = nicknameByUserId?.[String(userId)];
-  return nick ?? `사용자 #${userId}`;
+  return nick ?? UNKNOWN_USER_LABEL;
 }

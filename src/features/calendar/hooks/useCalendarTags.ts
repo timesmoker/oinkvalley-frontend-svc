@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import type { CalendarTagDef } from "@/features/calendar/lib/tagRegistry";
-import { slugifyTagLabel } from "@/features/calendar/lib/tagRegistry";
+import { PARTICIPATING_TAG, slugifyTagLabel } from "@/features/calendar/lib/tagRegistry";
 import {
     createCalendarTag,
     deleteCalendarTag,
@@ -15,6 +15,34 @@ import {
     updateCalendarTagVisibility,
 } from "@/features/calendar/api/calendarApi";
 import type { TagResponse } from "@/features/calendar/api/calendarTypes";
+import apiClient from "@/lib/api/apiClient";
+import type { ProfileResponse } from "@/features/profile/api/profileSvc";
+import { profilesToNicknameRecord, UNKNOWN_USER_LABEL } from "@/features/profile/api/profileSvc";
+
+/** 가져온 태그 소유자 닉네임 (프로필 API 한 번). 실패하면 기본 라벨 유지 */
+async function withOwnerNicknames(tags: CalendarTagDef[]): Promise<CalendarTagDef[]> {
+    const ownerIds = [
+        ...new Set(
+            tags
+                .filter((t) => t.source === "followed" && t.ownerId != null)
+                .map((t) => t.ownerId as number),
+        ),
+    ];
+    if (ownerIds.length === 0) return tags;
+    try {
+        const res = await apiClient.get<ProfileResponse[]>("/profiles", {
+            params: { ids: ownerIds.join(",") },
+        });
+        const nicknames = profilesToNicknameRecord(Array.isArray(res.data) ? res.data : []);
+        return tags.map((t) =>
+            t.source === "followed" && t.ownerId != null && nicknames[String(t.ownerId)]
+                ? { ...t, ownerLabel: nicknames[String(t.ownerId)] }
+                : t,
+        );
+    } catch {
+        return tags;
+    }
+}
 
 function mapTagResponse(tag: TagResponse, currentUserId?: number | null): CalendarTagDef {
     const isOwn = currentUserId != null && tag.ownerId === currentUserId;
@@ -25,7 +53,7 @@ function mapTagResponse(tag: TagResponse, currentUserId?: number | null): Calend
         label: tag.name,
         tagType,
         ownerId: tag.ownerId,
-        ownerLabel: isOwn ? "나" : `사용자 #${tag.ownerId}`,
+        ownerLabel: isOwn ? "나" : UNKNOWN_USER_LABEL,
         visibility: isPublic ? "public" : "private",
         source: isOwn ? "own" : "followed",
         hidden: tag.hidden === true,
@@ -39,14 +67,15 @@ type UseCalendarTagsArgs = {
 
 export function useCalendarTags({ currentUserId, enabled }: UseCalendarTagsArgs) {
     const [tags, setTags] = useState<CalendarTagDef[]>([]);
-    const [defaultVisibleTagIds, setDefaultVisibleTagIds] = useState<number[]>([]);
     const [loading, setLoading] = useState(false);
+    /** 태그 목록을 한 번이라도 받았는지 — 받기 전엔 필터 목록을 비워 둬 필터 초기화가 먼저 돌지 않게 한다 */
+    const [loaded, setLoaded] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const reload = useCallback(async () => {
         if (!enabled) {
             setTags([]);
-            setDefaultVisibleTagIds([]);
+            setLoaded(false);
             return;
         }
         setLoading(true);
@@ -54,12 +83,11 @@ export function useCalendarTags({ currentUserId, enabled }: UseCalendarTagsArgs)
         try {
             const res = await fetchCalendarTags();
             const mapped = res.tags.map((t) => mapTagResponse(t, currentUserId));
-            setTags(mapped);
-            setDefaultVisibleTagIds(res.defaultVisibleTagIds);
+            setTags(await withOwnerNicknames(mapped));
+            setLoaded(true);
         } catch (err) {
             if (axios.isAxiosError(err) && err.response?.status === 401) {
                 setTags([]);
-                setDefaultVisibleTagIds([]);
             } else {
                 setError("태그를 불러오지 못했습니다.");
             }
@@ -73,14 +101,13 @@ export function useCalendarTags({ currentUserId, enabled }: UseCalendarTagsArgs)
     }, [reload]);
 
     const allTags = tags;
-    const visibleTags = useMemo(() => allTags.filter((tag) => !tag.hidden), [allTags]);
+    /** 왼쪽 필터용: 숨기지 않은 태그 + 가상 태그 「참여 일정」(로그인 시) */
+    const visibleTags = useMemo(
+        () => (enabled && loaded ? [...allTags.filter((tag) => !tag.hidden), PARTICIPATING_TAG] : []),
+        [allTags, enabled, loaded],
+    );
     const orderedTagIds = useMemo(() => allTags.map((t) => t.id), [allTags]);
     const tagIds = useMemo(() => visibleTags.map((t) => t.id), [visibleTags]);
-
-    const defaultVisibleTagIdStrings = useMemo(
-        () => defaultVisibleTagIds.map(String),
-        [defaultVisibleTagIds],
-    );
 
     const patchTagHiddenLocal = useCallback((id: string, hidden: boolean) => {
         setTags((prev) =>
@@ -202,7 +229,12 @@ export function useCalendarTags({ currentUserId, enabled }: UseCalendarTagsArgs)
             try {
                 const res = await followCalendarTag(tag.id);
                 const mapped = mapTagResponse(res, currentUserId);
-                const withSource = { ...mapped, source: "followed" as const, hidden: false };
+                const withSource = {
+                    ...mapped,
+                    ownerLabel: tag.ownerLabel ?? mapped.ownerLabel,
+                    source: "followed" as const,
+                    hidden: false,
+                };
                 setTags((prev) => {
                     const exists = prev.some((t) => t.id === tag.id);
                     if (exists) {
@@ -223,7 +255,6 @@ export function useCalendarTags({ currentUserId, enabled }: UseCalendarTagsArgs)
         visibleTags,
         orderedTagIds,
         tagIds,
-        defaultVisibleTagIdStrings,
         loading,
         error,
         addTag,

@@ -4,6 +4,7 @@ import type { CalendarAddTagFn, CalendarEntryType } from "@/features/calendar/ty
 import type { CalendarTagDef } from "@/features/calendar/lib/tagRegistry";
 import { allTagIds, getTagStyle } from "@/features/calendar/lib/tagRegistry";
 import AddTagControl from "@/features/calendar/components/tags/AddTagControl";
+import UserAvatar from "@/components/ui/UserAvatar";
 import { cn } from "@/lib/utils";
 
 type EntryTypeFilterProps = {
@@ -31,12 +32,13 @@ export default function EntryTypeFilter({
     const orderedTagIds = allTagIds(allTags);
 
     if (layout === "sidebar") {
+        const ownTags = allTags.filter((tag) => tag.source !== "followed");
+        const followedTags = allTags.filter((tag) => tag.source === "followed");
+        const rowProps = { included, excluded, orderedTagIds, onToggleInclude, onToggleExclude };
         return (
             <nav className="flex flex-col gap-1.5">
                 <div className="flex items-center justify-between px-2">
-                    <h2 className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                        내 태그
-                    </h2>
+                    <SidebarSectionTitle>내 태그</SidebarSectionTitle>
                     {!allSelected && (
                         <button
                             type="button"
@@ -48,64 +50,25 @@ export default function EntryTypeFilter({
                     )}
                 </div>
                 <ul className="flex flex-col">
-                    {allTags.map((tag) => {
-                        const isIncluded = included.has(tag.id);
-                        const isExcluded = excluded.has(tag.id);
-                        const style = getTagStyle(tag.id, orderedTagIds);
-                        return (
-                            <li key={tag.id}>
-                                <div
-                                    className={cn(
-                                        "flex items-center gap-2 rounded-md px-2 py-1 text-[13px] transition hover:bg-muted/50",
-                                        !isIncluded && !isExcluded && "opacity-70",
-                                    )}
-                                >
-                                    <span
-                                        className={cn("h-2.5 w-2.5 shrink-0 rounded-sm", style.dot)}
-                                    />
-                                    <span className="min-w-0 flex-1 truncate text-foreground">
-                                        {tag.label}
-                                    </span>
-                                    <div className="flex shrink-0 rounded border border-border bg-background p-0.5">
-                                        <button
-                                            type="button"
-                                            onClick={() => onToggleInclude(tag.id)}
-                                            aria-pressed={isIncluded}
-                                            aria-label={`${tag.label} 포함`}
-                                            title="포함"
-                                            className={cn(
-                                                "h-6 w-6 rounded border text-xs font-semibold transition",
-                                                isIncluded
-                                                    ? "border-sky-700 bg-sky-600 text-white shadow-sm"
-                                                    : "border-transparent text-muted-foreground hover:bg-muted",
-                                            )}
-                                        >
-                                            +
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => onToggleExclude(tag.id)}
-                                            aria-pressed={isExcluded}
-                                            aria-label={`${tag.label} 제외`}
-                                            title="제외"
-                                            className={cn(
-                                                "h-6 w-6 rounded border text-xs font-semibold transition",
-                                                isExcluded
-                                                    ? "border-rose-700 bg-rose-600 text-white shadow-sm"
-                                                    : "border-transparent text-muted-foreground hover:bg-muted",
-                                            )}
-                                        >
-                                            -
-                                        </button>
-                                    </div>
-                                </div>
-                            </li>
-                        );
-                    })}
+                    {ownTags.map((tag) => (
+                        <SidebarTagRow key={tag.id} tag={tag} {...rowProps} />
+                    ))}
                 </ul>
                 <div className="px-2 pt-1">
                     <AddTagControl onAdd={onAddTag} />
                 </div>
+                {followedTags.length > 0 && (
+                    <>
+                        <div className="px-2 pt-3">
+                            <SidebarSectionTitle>가져온 태그</SidebarSectionTitle>
+                        </div>
+                        <ul className="flex flex-col">
+                            {followedTags.map((tag) => (
+                                <SidebarTagRow key={tag.id} tag={tag} showOwner {...rowProps} />
+                            ))}
+                        </ul>
+                    </>
+                )}
             </nav>
         );
     }
@@ -172,5 +135,92 @@ export default function EntryTypeFilter({
                 </button>
             )}
         </div>
+    );
+}
+
+function SidebarSectionTitle({ children }: { children: string }) {
+    return (
+        <h2 className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            {children}
+        </h2>
+    );
+}
+
+type SidebarTagRowProps = {
+    tag: CalendarTagDef;
+    included: ReadonlySet<CalendarEntryType>;
+    excluded: ReadonlySet<CalendarEntryType>;
+    orderedTagIds: CalendarEntryType[];
+    onToggleInclude: (type: CalendarEntryType) => void;
+    onToggleExclude: (type: CalendarEntryType) => void;
+    /** 가져온 태그: 소유자 닉네임 + 아바타 */
+    showOwner?: boolean;
+};
+
+function SidebarTagRow({
+    tag,
+    included,
+    excluded,
+    orderedTagIds,
+    onToggleInclude,
+    onToggleExclude,
+    showOwner = false,
+}: SidebarTagRowProps) {
+    const isIncluded = included.has(tag.id);
+    const isExcluded = excluded.has(tag.id);
+    const style = getTagStyle(tag.id, orderedTagIds);
+    return (
+        <li>
+            <div
+                className={cn(
+                    "flex items-center gap-2 rounded-md px-2 py-1 text-[13px] transition hover:bg-muted/50",
+                    !isIncluded && !isExcluded && "opacity-70",
+                )}
+            >
+                <span className={cn("h-2.5 w-2.5 shrink-0 rounded-sm", style.dot)} />
+                {/* 이름은 줄지 않고(칸보다 길 때만 말줄임) 닉네임이 남는 공간만 쓴다. 동그라미는 항상 */}
+                <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
+                    <span className="max-w-full shrink-0 truncate text-foreground">{tag.label}</span>
+                    {showOwner && tag.ownerLabel && (
+                        <span className="min-w-0 flex-1 truncate text-right text-[11px] text-muted-foreground">
+                            {tag.ownerLabel}
+                        </span>
+                    )}
+                </span>
+                {showOwner && tag.ownerLabel && <UserAvatar name={tag.ownerLabel} />}
+                <div className="flex shrink-0 rounded border border-border bg-background p-0.5">
+                    <button
+                        type="button"
+                        onClick={() => onToggleInclude(tag.id)}
+                        aria-pressed={isIncluded}
+                        aria-label={`${tag.label} 포함`}
+                        title="포함"
+                        className={cn(
+                            "h-6 w-6 rounded border text-xs font-semibold transition",
+                            isIncluded
+                                ? "border-sky-700 bg-sky-600 text-white shadow-sm"
+                                : "border-transparent text-muted-foreground hover:bg-muted",
+                        )}
+                    >
+                        +
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => onToggleExclude(tag.id)}
+                        aria-pressed={isExcluded}
+                        aria-label={`${tag.label} 제외`}
+                        title="제외"
+                        className={cn(
+                            "h-6 w-6 rounded border text-xs font-semibold transition",
+                            isExcluded
+                                ? "border-rose-700 bg-rose-600 text-white shadow-sm"
+                                : "border-transparent text-muted-foreground hover:bg-muted",
+                        )}
+                    >
+                        -
+                    </button>
+                </div>
+            </div>
+        </li>
     );
 }

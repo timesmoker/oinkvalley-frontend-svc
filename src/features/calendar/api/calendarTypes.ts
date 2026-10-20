@@ -60,7 +60,6 @@ export type TagResponse = {
 
 export type TagListResponse = {
     tags: TagResponse[];
-    defaultVisibleTagIds: number[];
 };
 
 export type DiscoverTagResponse = {

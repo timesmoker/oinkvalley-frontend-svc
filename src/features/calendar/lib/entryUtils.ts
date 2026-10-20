@@ -98,10 +98,10 @@ export function formatEntryParticipantsLabel(
     nicknameByUserId?: Record<string, string>,
     participantEmails: string[] = [],
 ): string {
-    const labels = [
-        ...participantIds.map((id) => authorLabel(nicknameByUserId, id)),
-        ...participantEmails,
-    ];
+    // participantEmails 는 participantIds 와 같은 순서의 같은 사람 — 닉네임이 없을 때만 이메일로 대신한다
+    const labels = participantIds.map(
+        (id, i) => nicknameByUserId?.[String(id)] ?? participantEmails[i] ?? authorLabel(nicknameByUserId, id),
+    );
     if (labels.length === 0) return "—";
     return labels.join(", ");
 }
@@ -186,14 +186,6 @@ export function calendarRangeForView(
     return { from: key, to: key };
 }
 
-/** API types 쿼리: 전체 선택이면 생략(undefined) */
-export function typesForApiQuery(
-    filter: ReadonlySet<CalendarEntryType>,
-    allIds: CalendarEntryType[],
-): CalendarEntryType[] | undefined {
-    if (filter.size === 0 || filter.size === allIds.length) return undefined;
-    return allIds.filter((t) => filter.has(t));
-}
 
 export function dateKey(year: number, month: number, day: number) {
     return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;

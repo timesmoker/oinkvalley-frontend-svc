@@ -28,6 +28,7 @@ import {
     CALENDAR_TIMELINE_START_HOUR,
     formatHourLabel,
 } from "@/features/calendar/lib/timeline";
+import EntryOwnerAvatar from "@/features/calendar/components/entry/EntryOwnerAvatar";
 import EntryTagDots from "@/features/calendar/components/tags/EntryTagDots";
 import CreatePreviewResizable, {
     CreatePreviewEdgeShades,
@@ -474,6 +475,7 @@ export default function WeekView({
                                                         clipText,
                                                     )}
                                                 >
+                                                    <EntryOwnerAvatar entry={entry} className="mr-0.5 inline-flex align-middle" />
                                                     {entry.title}
                                                 </button>
                                         ))}
@@ -751,7 +753,10 @@ export default function WeekView({
                                             )}
                                             style={{ top: block.top, height: block.height }}
                                         >
-                                            <EntryTagDots tags={entry.tags} orderedTagIds={orderedTagIds} />
+                                            <span className="flex items-center gap-0.5">
+                                                <EntryTagDots tags={entry.tags} orderedTagIds={orderedTagIds} />
+                                                <EntryOwnerAvatar entry={entry} />
+                                            </span>
                                             <span className={cn(clipText, "font-medium")}>
                                                 {entry.title}
                                             </span>

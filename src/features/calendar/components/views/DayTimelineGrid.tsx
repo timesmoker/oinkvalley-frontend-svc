@@ -24,6 +24,7 @@ import {
     CALENDAR_TIMELINE_LABEL_CLASS,
     formatHourLabel,
 } from "@/features/calendar/lib/timeline";
+import EntryOwnerAvatar from "@/features/calendar/components/entry/EntryOwnerAvatar";
 import EntryTagDots from "@/features/calendar/components/tags/EntryTagDots";
 import CreatePreviewResizable, {
     CreatePreviewEdgeShades,
@@ -229,6 +230,7 @@ function PlannerBar({ entry, orderedTagIds, startMin, endMin, onSelect }: Planne
         >
             <span className="flex min-w-0 items-center gap-0.5 text-[11px] leading-tight">
                 <EntryTagDots tags={entry.tags} orderedTagIds={orderedTagIds} className="shrink-0" />
+                <EntryOwnerAvatar entry={entry} />
                 <span className={cn(clipText, "font-medium")}>{entry.title}</span>
             </span>
         </button>
@@ -716,7 +718,10 @@ export default function DayTimelineGrid({
                                 "rounded-md px-1.5 py-1 text-[11px] font-medium",
                             )}
                         >
-                            <span className={cn(clipText, "font-medium")}>{entry.title}</span>
+                            <span className="flex min-w-0 items-center gap-0.5">
+                                <EntryOwnerAvatar entry={entry} />
+                                <span className={cn(clipText, "font-medium")}>{entry.title}</span>
+                            </span>
                         </div>
                     ))}
                 </div>
@@ -835,6 +840,7 @@ export default function DayTimelineGrid({
                         >
                             <span className="flex min-w-0 items-center gap-0.5">
                                 <EntryTagDots tags={entry.tags} orderedTagIds={orderedTagIds} />
+                                <EntryOwnerAvatar entry={entry} />
                                 <span className={cn(clipText, "font-medium")}>{entry.title}</span>
                             </span>
                             {!compact && entry.startTime && (

@@ -59,10 +59,15 @@ export function useCalendarTagFilters({
                     stored?.include.filter((id) => tagIds.includes(id)) ?? [];
                 const validExclude =
                     stored?.exclude.filter((id) => tagIds.includes(id)) ?? [];
-                initialInclude =
-                    validInclude.length > 0
-                        ? new Set(validInclude)
-                        : new Set(tagIds);
+                // 저장 때 몰랐던 태그는 켠다. 옛 형식(known 없음)은 include·exclude 를 아는 태그로 본다
+                const known = new Set(
+                    stored && stored.known.length > 0
+                        ? stored.known
+                        : [...(stored?.include ?? []), ...(stored?.exclude ?? [])],
+                );
+                const unseen = tagIds.filter((id) => !known.has(id) && !validExclude.includes(id));
+                const restored = [...validInclude, ...unseen];
+                initialInclude = restored.length > 0 ? new Set(restored) : new Set(tagIds);
                 initialExclude = new Set(
                     validExclude.filter((id) => !initialInclude.has(id)),
                 );
@@ -93,8 +98,9 @@ export function useCalendarTagFilters({
         saveTagFilterSelection(currentUserId, {
             include: [...typeFilter],
             exclude: [...excludedTypeFilter],
+            known: [...tagIds],
         });
-    }, [typeFilter, excludedTypeFilter, currentUserId, enabled]);
+    }, [typeFilter, excludedTypeFilter, currentUserId, enabled, tagIds]);
 
     const toggleTypeFilter = useCallback((type: CalendarEntryType) => {
         setTypeFilter((prev) => {

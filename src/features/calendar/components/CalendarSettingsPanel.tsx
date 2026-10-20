@@ -25,7 +25,6 @@ type CalendarSettingsPanelProps = {
     open: boolean;
     tags: CalendarTagDef[];
     /** `CALENDAR_DEFAULT_VISIBLE_TAG_IDS` — 공통 태그는 휴지통 미표시 */
-    defaultVisibleTagIds?: readonly string[];
     currentUserId?: number | null;
     onClose: () => void;
     onAddTag: CalendarAddTagFn;
@@ -39,7 +38,6 @@ type CalendarSettingsPanelProps = {
 export default function CalendarSettingsPanel({
     open,
     tags,
-    defaultVisibleTagIds = [],
     currentUserId,
     onClose,
     onAddTag,
@@ -58,10 +56,6 @@ export default function CalendarSettingsPanel({
     const [message, setMessage] = useState<string | null>(null);
 
     const currentOwnerId = currentUserId ?? null;
-    const defaultVisibleSet = useMemo(
-        () => new Set(defaultVisibleTagIds),
-        [defaultVisibleTagIds],
-    );
     const orderedTagIds = useMemo(() => allTagIds(tags), [tags]);
     const addedTagIds = useMemo(() => new Set(tags.map((tag) => tag.id)), [tags]);
     const stats = useMemo(() => calculateTagStats(tags), [tags]);
@@ -107,7 +101,7 @@ export default function CalendarSettingsPanel({
 
     const canManage = (tag: CalendarTagDef) => canManageTag(tag, currentOwnerId);
     const canRemove = (tag: CalendarTagDef) =>
-        canRemoveTag(tag, currentOwnerId, defaultVisibleSet);
+        canRemoveTag(tag, currentOwnerId);
 
     const handleDelete = (tag: CalendarTagDef) => {
         if (tag.source !== "followed") {
